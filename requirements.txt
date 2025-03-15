@@ -1,0 +1,3 @@
+rlcard
+numpy
+matplotlib
