@@ -7,6 +7,9 @@ class CrewCard:
         self.rank: int = rank
         self.is_rocket: bool = suit == 'Rocket'
 
+    def __str__(self):
+        return f'{self.suit} {self.rank}'
+
 
 class CrewPlayer:
     def __init__(self, player_id: int):
@@ -20,10 +23,14 @@ class CrewPlayer:
             return card
         return None
 
+    def __str__(self):
+        return f'Player {self.player_id}'
+
 
 class CrewGame:
     def __init__(self):
         self.players: list[CrewPlayer] = [CrewPlayer(i) for i in range(4)]
+        self.tasks: list[tuple[int, CrewCard]] = []
         self.current_round: list[tuple[int, CrewCard]] = []
         self.leading_suit = None
         self.winner = None
@@ -50,6 +57,9 @@ class CrewGame:
         task_cards = np.random.choice(normal_cards, 4, replace=False)
         for i, task_card in enumerate(task_cards):
             self.players[i].tasks.append(task_card)
+            self.tasks.append((i, task_card))
+        print('Tasks assigned: ', [
+              (player.player_id, player.tasks[0].suit, player.tasks[0].rank) for player in self.players])
 
     def find_starting_player(self) -> int:
         for player in self.players:
@@ -60,9 +70,12 @@ class CrewGame:
     def play_round(self, round_number: int) -> bool:
         self.current_round = []
         self.leading_suit = None
+        print(f'Starting round {round_number}')
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
             card_played = player.play_card(np.random.choice(player.hand))
+            print(
+                f'Player {player.player_id} played {card_played.suit} {card_played.rank}')
             if not self.leading_suit:
                 self.leading_suit = card_played.suit
             self.current_round.append((player.player_id, card_played))
@@ -72,13 +85,29 @@ class CrewGame:
     def resolve_winner(self, round_number: int) -> bool:
         highest_card = None
         winning_player = None
+        has_task = False
+        supposed_winner = None
+        played_cards = [card for _, card in self.current_round]
+        for task in self.tasks:
+            if task[1] in played_cards:
+                if has_task:
+                    print(
+                        f'Double task in round {round_number}, so someone will not fullfill ')
+                    return False
+                self.tasks.remove(task)
+                supposed_winner = task[0]
+                has_task = True
+                print(
+                    f'Player {supposed_winner} should take this trick to gather {task[1]}')
         for player_id, card in self.current_round:
             if highest_card is None or (card.suit == self.leading_suit and card.rank > highest_card.rank) or (card.is_rocket and not highest_card.is_rocket):
                 highest_card = card
                 winning_player = player_id
-        if not winning_player:
-            print('No winner in this round: ', round_number)
+        if supposed_winner is not None and supposed_winner != winning_player:
+            print(
+                f'Task winner did not win the round {round_number}, so we lost')
             return False
+        print(f'Player {winning_player} won round {round_number}')
         self.current_player = winning_player
         return True
 
