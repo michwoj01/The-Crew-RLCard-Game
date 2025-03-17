@@ -23,6 +23,9 @@ class CrewPlayer:
             return card
         return None
 
+    def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
+        return np.random.choice(tasks)
+
     def __str__(self):
         return f'Player {self.player_id}'
 
@@ -36,8 +39,8 @@ class CrewGame:
         self.winner = None
         self.deck: list[CrewCard] = self.generate_deck()
         self.deal_cards()
-        self.assign_tasks()
         self.starting_player: int = self.find_starting_player()
+        self.assign_tasks()
         self.current_player = self.starting_player
 
     def generate_deck(self) -> list[CrewCard]:
@@ -55,9 +58,13 @@ class CrewGame:
     def assign_tasks(self):
         normal_cards = [card for card in self.deck if not card.is_rocket]
         task_cards = np.random.choice(normal_cards, 4, replace=False)
-        for i, task_card in enumerate(task_cards):
-            self.players[i].tasks.append(task_card)
-            self.tasks.append((i, task_card))
+        n = len(task_cards)
+        for i in range(n):
+            chosen_task = self.players[i].choose_task(task_cards)
+            self.tasks.append((i, chosen_task))
+            self.players[i].tasks.append(chosen_task)
+            task_cards = [card for card in task_cards if card != chosen_task]
+
         print('Tasks assigned: ', [
               (player.player_id, player.tasks[0].suit, player.tasks[0].rank) for player in self.players])
 
