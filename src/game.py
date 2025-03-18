@@ -1,4 +1,5 @@
 import numpy as np
+import rlcard
 
 
 class CrewCard:
@@ -17,11 +18,10 @@ class CrewPlayer:
         self.hand: list[CrewCard] = []
         self.tasks: list[CrewCard] = []
 
-    def play_card(self, card: CrewCard) -> CrewCard:
-        if card in self.hand:
-            self.hand.remove(card)
-            return card
-        return None
+    def play_card(self) -> CrewCard:
+        card = np.random.choice(self.hand)
+        self.hand.remove(card)
+        return card
 
     def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
         return np.random.choice(tasks)
@@ -30,9 +30,43 @@ class CrewPlayer:
         return f'Player {self.player_id}'
 
 
+class IntelligentCrewPlayer(CrewPlayer):
+    def __init__(self, player_id: int):
+        super().__init__(player_id)
+        self.env = rlcard.make('uno')  # Example RLCard environment, replace with a custom one if needed
+        self.state = None
+        self.played_cards: list[CrewCard] = []  # Track all played cards
+
+    def update_state(self, tasks: list[tuple[int, CrewCard]], current_round: list[tuple[int, CrewCard]]):
+        # Update the state with visible tasks, played cards in the current round, and all played cards
+        self.state = {
+            'tasks': tasks,
+            'current_round': current_round,
+            'played_cards': self.played_cards,
+            'hand': self.hand,
+        }
+
+    def play_card(self) -> CrewCard:
+        if not self.state:
+            raise ValueError("State not initialized for IntelligentCrewPlayer")
+        
+        # Use RLCard to decide the best card to play
+        legal_actions = [card for card in self.hand]
+        action = self.env.step(legal_actions)  # Replace with actual RLCard decision logic
+        chosen_card = legal_actions[action]
+        self.hand.remove(chosen_card)
+        self.played_cards.append(chosen_card)
+        return chosen_card
+
+
 class CrewGame:
     def __init__(self):
-        self.players: list[CrewPlayer] = [CrewPlayer(i) for i in range(4)]
+        self.players: list[CrewPlayer] = [
+            IntelligentCrewPlayer(0),  # Example: First player is intelligent
+            CrewPlayer(1),
+            CrewPlayer(2),
+            CrewPlayer(3),
+        ]
         self.tasks: list[tuple[int, CrewCard]] = []
         self.current_round: list[tuple[int, CrewCard]] = []
         self.leading_suit = None
@@ -80,7 +114,9 @@ class CrewGame:
         print(f'Starting round {round_number}')
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
-            card_played = player.play_card(np.random.choice(player.hand))
+            if isinstance(player, IntelligentCrewPlayer):
+                player.update_state(self.tasks, self.current_round)
+            card_played = player.play_card()
             print(
                 f'Player {player.player_id} played {card_played.suit} {card_played.rank}')
             if not self.leading_suit:
