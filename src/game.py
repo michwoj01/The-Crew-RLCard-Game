@@ -33,8 +33,6 @@ class CrewPlayer:
 class IntelligentCrewPlayer(CrewPlayer):
     def __init__(self, player_id: int):
         super().__init__(player_id)
-        self.env = rlcard.make('uno')  # Example RLCard environment, replace with a custom one if needed
-        self.state = None
         self.played_cards: list[CrewCard] = []  # Track all played cards
 
     def update_state(self, tasks: list[tuple[int, CrewCard]], current_round: list[tuple[int, CrewCard]]):
@@ -50,10 +48,10 @@ class IntelligentCrewPlayer(CrewPlayer):
         if not self.state:
             raise ValueError("State not initialized for IntelligentCrewPlayer")
         
-        # Use RLCard to decide the best card to play
-        legal_actions = [card for card in self.hand]
-        action = self.env.step(legal_actions)  # Replace with actual RLCard decision logic
-        chosen_card = legal_actions[action]
+        # Simplified decision-making: Play the lowest-ranked card of the leading suit, if possible
+        leading_suit = self.state['current_round'][0][1].suit if self.state['current_round'] else None
+        legal_actions = [card for card in self.hand if card.suit == leading_suit] or self.hand
+        chosen_card = min(legal_actions, key=lambda card: card.rank)
         self.hand.remove(chosen_card)
         self.played_cards.append(chosen_card)
         return chosen_card
@@ -105,6 +103,7 @@ class CrewGame:
     def find_starting_player(self) -> int:
         for player in self.players:
             if any(card.is_rocket and card.rank == 4 for card in player.hand):
+                print(f'Player {player.player_id} has the 4 Rocket')
                 return player.player_id
         return 0
 
@@ -148,7 +147,7 @@ class CrewGame:
                 winning_player = player_id
         if supposed_winner is not None and supposed_winner != winning_player:
             print(
-                f'Task winner did not win the round {round_number}, so we lost')
+                f'Task winner did not win the round {round_number}')
             return False
         print(f'Player {winning_player} won round {round_number}')
         self.current_player = winning_player
@@ -159,7 +158,6 @@ class CrewGame:
 game = CrewGame()
 for i in range(10):
     if not game.play_round(i):
-        print('Game over')
         break
 else:
     print('Game finished')
