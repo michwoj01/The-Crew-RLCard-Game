@@ -11,6 +11,9 @@ class CrewCard:
     def __str__(self):
         return f'{self.suit}{self.rank}'
 
+    def __eq__(self, other):
+        return self.suit == other.suit and self.rank == other.rank
+
 
 class CrewPlayer:
     def __init__(self, player_id: int):
@@ -28,17 +31,19 @@ class CrewPlayer:
 
     def __str__(self):
         return f'Player {self.player_id}'
-    
+
     def show_hand_and_task(self):
         # print suit and rank for each card in hand
 
         print(f'Player {self.player_id} hand: ', [
-                card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
-                card.suit[0] + str(card.rank) for card in self.tasks])
+            card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
+                  card.suit[0] + str(card.rank) for card in self.tasks])
+
 
 class IntelligentCrewPlayer(CrewPlayer):
     def __init__(self, player_id: int):
         super().__init__(player_id)
+        self.state = None
         self.played_cards: list[CrewCard] = []  # Track all played cards
 
     def update_state(self, tasks: list[tuple[int, CrewCard]], current_round: list[tuple[int, CrewCard]]):
@@ -50,22 +55,54 @@ class IntelligentCrewPlayer(CrewPlayer):
             'hand': self.hand,
         }
 
+    def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
+        for task in tasks:
+            highest_card = CrewCard(task.suit, 9)
+            if highest_card in self.hand:
+                return task
+        for task in tasks:
+            high_card = CrewCard(task.suit, 8)
+            if task.rank != 9 and high_card in self.hand and len(list(filter(lambda card: card.suit == task.suit, self.hand))) > 1:
+                return task
+        return np.random.choice(tasks)
+
     def play_card(self) -> CrewCard:
         if not self.state:
             raise ValueError("State not initialized for IntelligentCrewPlayer")
-        
+
         # Simplified decision-making: Play the lowest-ranked card of the leading suit, if possible
-        leading_suit = self.state['current_round'][0][1].suit if self.state['current_round'] else None
+        current_round = self.state['current_round']
+        leading_suit = current_round[0][1].suit if current_round else None
+        mapped_all_tasks = list(map(lambda task: task[1], self.state['tasks']))
         if leading_suit is None:
             task_suit = self.tasks[0].suit if self.tasks else None
-            legal_actions = [card for card in self.hand if card.suit == task_suit] or self.hand
-            chosen_card = max(legal_actions, key=lambda card: card.rank)
+            possible_actions = [card for card in self.hand if card.suit == task_suit and (card not in mapped_all_tasks or card in self.tasks)]
+            if len(possible_actions) > 0:
+                chosen_card = max(possible_actions, key=lambda card: card.rank)
+            else:
+                safe_cards = [card for card in self.hand if not card.is_rocket and card not in mapped_all_tasks] or self.hand
+                chosen_card = min(safe_cards, key=lambda card: card.rank)
             self.hand.remove(chosen_card)
             self.played_cards.append(chosen_card)
             return chosen_card
         else:
-            legal_actions = [card for card in self.hand if card.suit == leading_suit] or self.hand
-            chosen_card = min(legal_actions, key=lambda card: card.rank)
+            leading_player_id = current_round[0][0]
+            leading_player_tasks = list(filter(lambda task: task[0] == leading_player_id, self.state['tasks']))
+            mapped_leading_player_tasks = list(map(lambda task: task[1], leading_player_tasks))
+
+            mission_card_for_leading_player = next((card for card in mapped_leading_player_tasks if card in self.hand), None)
+            if any(card in list(map(lambda card: card[1], current_round)) for card in self.tasks):
+                legal_actions_to_take = [card for card in self.hand if card.suit == leading_suit and (card not in mapped_all_tasks or card in self.tasks)] or [card for card in self.hand if card.suit == leading_suit] or self.hand
+                maybe_rocket = next((card for card in legal_actions_to_take if card.is_rocket), None)
+                if maybe_rocket is not None:
+                    chosen_card = maybe_rocket
+                else:
+                    chosen_card = max(legal_actions_to_take, key=lambda card: card.rank)
+            elif mission_card_for_leading_player is not None and current_round[0][1].rank > mission_card_for_leading_player.rank:
+                chosen_card = mission_card_for_leading_player
+            else:
+                legal_actions_to_give_away = [card for card in self.hand if card.suit == leading_suit and card not in mapped_all_tasks] or [card for card in self.hand if not card.is_rocket and card not in mapped_all_tasks] or [card for card in self.hand if card.suit == leading_suit] or self.hand
+                chosen_card = min(legal_actions_to_give_away, key=lambda card: card.rank)
             self.hand.remove(chosen_card)
             self.played_cards.append(chosen_card)
             return chosen_card
@@ -75,9 +112,9 @@ class CrewGame:
     def __init__(self):
         self.players: list[CrewPlayer] = [
             IntelligentCrewPlayer(0),  # Example: First player is intelligent
-            CrewPlayer(1),
-            CrewPlayer(2),
-            CrewPlayer(3),
+            IntelligentCrewPlayer(1),
+            IntelligentCrewPlayer(2),
+            IntelligentCrewPlayer(3),
         ]
         self.tasks: list[tuple[int, CrewCard]] = []
         self.current_round: list[tuple[int, CrewCard]] = []
@@ -86,7 +123,7 @@ class CrewGame:
         self.deck: list[CrewCard] = self.generate_deck()
         self.deal_cards()
         self.starting_player: int = self.find_starting_player()
-        self.assign_tasks()
+        self.assign_tasks(3)
         self.current_player = self.starting_player
 
     def generate_deck(self) -> list[CrewCard]:
@@ -103,18 +140,15 @@ class CrewGame:
         for player in self.players:
             player.hand = sorted(player.hand, key=lambda card: (card.suit, card.rank))
 
-    def assign_tasks(self):
+    def assign_tasks(self, no_missions):
         normal_cards = [card for card in self.deck if not card.is_rocket]
-        task_cards = np.random.choice(normal_cards, 4, replace=False)
-        n = len(task_cards)
-        for i in range(n):
+        task_cards = np.random.choice(normal_cards, no_missions, replace=False)
+        picking_order = [(self.starting_player + i) % len(self.players) for i in range(no_missions)]
+        for i in picking_order:
             chosen_task = self.players[i].choose_task(task_cards)
             self.tasks.append((i, chosen_task))
             self.players[i].tasks.append(chosen_task)
             task_cards = [card for card in task_cards if card != chosen_task]
-
-        print('Tasks assigned: ', [
-              (player.player_id, player.tasks[0].suit, player.tasks[0].rank) for player in self.players])
 
     def find_starting_player(self) -> int:
         for player in self.players:
@@ -150,7 +184,8 @@ class CrewGame:
         suppoded_task = None
         played_cards = [card for _, card in self.current_round]
         for player_id, card in self.current_round:
-            if highest_card is None or (card.suit == self.leading_suit and card.rank > highest_card.rank) or (card.is_rocket and not highest_card.is_rocket):
+            if highest_card is None or (card.suit == self.leading_suit and card.rank > highest_card.rank) or (
+                    card.is_rocket and not highest_card.is_rocket):
                 highest_card = card
                 winning_player = player_id
         for task in self.tasks:
