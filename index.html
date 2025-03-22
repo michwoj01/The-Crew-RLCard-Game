@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Crew Game</title>
+    <script>
+        let socket;
+
+        function connectWebSocket() {
+            socket = new WebSocket("ws://localhost:8000/ws");
+
+            socket.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                console.log("Message from server:", data);
+
+                if (data.status === "card_played") {
+                    alert(`Card played: ${data.card}`);
+                } else if (data.status === "task_chosen") {
+                    alert(`Task chosen: ${data.task}`);
+                } else if (data.status === "communicated") {
+                    alert(`Signal communicated: ${data.signal}`);
+                } else if (data.status === "game_state") {
+                    updateGameState(data.state);
+                }
+            };
+
+            socket.onclose = function() {
+                alert("WebSocket connection closed");
+            };
+        }
+
+        function updateGameState(state) {
+            const gameStateDiv = document.getElementById("game-state");
+            gameStateDiv.innerHTML = `
+                <h3>Game State</h3>
+                <p><strong>Tasks:</strong> ${JSON.stringify(state.tasks)}</p>
+                <p><strong>Current Round:</strong> ${JSON.stringify(state.current_round)}</p>
+            `;
+        }
+
+        function playCard() {
+            const suit = document.getElementById("card-suit").value;
+            const rank = parseInt(document.getElementById("card-rank").value);
+            socket.send(JSON.stringify({ action: "play_card", suit, rank }));
+        }
+
+        function chooseTask() {
+            const suit = document.getElementById("task-suit").value;
+            const rank = parseInt(document.getElementById("task-rank").value);
+            socket.send(JSON.stringify({ action: "choose_task", suit, rank }));
+        }
+
+        function communicate() {
+            const suit = document.getElementById("signal-suit").value;
+            const rank = parseInt(document.getElementById("signal-rank").value);
+            const signal = parseInt(document.getElementById("signal-type").value);
+            socket.send(JSON.stringify({ action: "communicate", suit, rank, signal }));
+        }
+
+        function getGameState() {
+            socket.send(JSON.stringify({ action: "get_game_state" }));
+        }
+    </script>
+</head>
+<body onload="connectWebSocket()">
+    <h1>The Crew Game</h1>
+    <div id="game-state">
+        <h3>Game State</h3>
+        <p>Loading...</p>
+    </div>
+    <button onclick="getGameState()">Refresh Game State</button>
+    <div>
+        <h2>Play Card</h2>
+        <label for="card-suit">Suit:</label>
+        <input id="card-suit" type="text">
+        <label for="card-rank">Rank:</label>
+        <input id="card-rank" type="number">
+        <button onclick="playCard()">Play Card</button>
+    </div>
+    <div>
+        <h2>Choose Task</h2>
+        <label for="task-suit">Suit:</label>
+        <input id="task-suit" type="text">
+        <label for="task-rank">Rank:</label>
+        <input id="task-rank" type="number">
+        <button onclick="chooseTask()">Choose Task</button>
+    </div>
+    <div>
+        <h2>Communicate</h2>
+        <label for="signal-suit">Suit:</label>
+        <input id="signal-suit" type="text">
+        <label for="signal-rank">Rank:</label>
+        <input id="signal-rank" type="number">
+        <label for="signal-type">Signal (0=ONLY, 1=LOWEST, 2=HIGHEST):</label>
+        <input id="signal-type" type="number">
+        <button onclick="communicate()">Communicate</button>
+    </div>
+</body>
+</html>

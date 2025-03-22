@@ -22,6 +22,11 @@ class CrewGame:
         self.assign_tasks()
         self.current_player = self.starting_player
         self.show_logs = show_logs
+        for i in range(10):
+            if not self.play_round(i):
+                break
+            else:
+                print('Game finished')
 
     def generate_deck(self) -> list[CrewCard]:
         suits = ['B', 'G', 'Y', 'P']
@@ -111,11 +116,3 @@ class CrewGame:
         print(f'Player {winning_player} won round {round_number}')
         self.current_player = winning_player
         return True
-
-
-game = CrewGame()
-for i in range(10):
-    if not game.play_round(i):
-        break
-else:
-    print('Game finished')

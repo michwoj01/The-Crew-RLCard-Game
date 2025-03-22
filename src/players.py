@@ -1,4 +1,5 @@
 import numpy as np
+import asyncio
 from card import Communicate, CrewCard, Signal
 
 
@@ -86,51 +87,43 @@ class IntelligentCrewPlayer(CrewPlayer):
 class HumanCrewPlayer(CrewPlayer):
     def __init__(self, player_id: int):
         super().__init__(player_id)
+        self.selected_card: CrewCard = None
+        self.selected_task: CrewCard = None
+        self.selected_signal: tuple[CrewCard, Signal] = None
 
-    def play_card(self) -> CrewCard:
-        self.show_hand_and_task()
-        played = True
-        while (played):
-            suit = input('Enter suit: ')
-            rank = int(input('Enter rank: '))
-            card = CrewCard(suit, rank)
-            if card in self.hand:
-                played = False
-            else:
-                print('Invalid card, try again')
+    async def play_card(self) -> CrewCard:
+        while not self.selected_card or self.selected_card not in self.hand:
+            await asyncio.sleep(0.1)  # Wait for a valid card to be set
+        card = self.selected_card
         self.hand.remove(card)
+        self.selected_card = None  # Reset after playing
         return card
 
-    def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
-        self.show_hand_and_task()
-        print(f'Tasks to choose: ', [
-            card.suit[0] + str(card.rank) for card in tasks])
-        chosen = True
-        while (chosen):
-            suit = input('Enter suit: ')
-            rank = int(input('Enter rank: '))
-            card = CrewCard(suit, rank)
-            if card in tasks:
-                chosen = False
-            else:
-                print('Invalid task, try again')
-        return card
+    async def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
+        while not self.selected_task or self.selected_task not in tasks:
+            await asyncio.sleep(0.1)  # Wait for a valid task to be set
+        task = self.selected_task
+        self.selected_task = None  # Reset after choosing
+        return task
 
-    def communicate(self) -> tuple[int, Communicate]:
-        self.show_hand_and_task()
-        print(f'Player {self.player_id} signals: ', [
-              (str(signal[0]), str(signal[1])) for signal in self.signals])
+    async def communicate(self) -> tuple[int, Communicate]:
         if self.has_communicated:
             raise ValueError("Player has already communicated")
-        chosen = True
-        while (chosen):
-            suit = input('Enter suit: ')
-            rank = int(input('Enter rank: '))
-            signal = CrewCard(suit, rank), Signal(
-                int(input('Enter signal: ')))
-            if signal in self.signals:
-                chosen = False
-            else:
-                print('Invalid signal, try again')
+        while not self.selected_signal or self.selected_signal not in self.signals:
+            await asyncio.sleep(0.1)  # Wait for a valid signal to be set
+        signal = self.selected_signal
         self.has_communicated = True
+        self.selected_signal = None  # Reset after communicating
         return (self.player_id, signal)
+
+    def set_selected_card(self, card: CrewCard):
+        """Set the card to be played."""
+        self.selected_card = card
+
+    def set_selected_task(self, task: CrewCard):
+        """Set the task to be chosen."""
+        self.selected_task = task
+
+    def set_selected_signal(self, signal: tuple[CrewCard, Signal]):
+        """Set the signal to be communicated."""
+        self.selected_signal = signal
