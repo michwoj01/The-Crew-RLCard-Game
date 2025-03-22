@@ -1,22 +1,40 @@
 import numpy as np
 import rlcard
+import rlcard.games
+import rlcard.games.blackjack
+from enum import Enum
+
+
+class Signal(Enum):
+    LOWEST = 1
+    HIGHEST = 2
+    ONLY = 3
+
+    # implement printing Signal
+    def __str__(self):
+        return self.name
 
 
 class CrewCard:
     def __init__(self, suit: str, rank: int):
         self.suit: str = suit
         self.rank: int = rank
-        self.is_rocket: bool = suit == 'Rocket'
+        self.is_rocket: bool = suit == 'R'
 
     def __str__(self):
         return f'{self.suit}{self.rank}'
 
 
+Communicate = tuple[CrewCard, Signal]
+
+
 class CrewPlayer:
     def __init__(self, player_id: int):
         self.player_id: int = player_id
+        self.has_communicated: bool = False
         self.hand: list[CrewCard] = []
         self.tasks: list[CrewCard] = []
+        self.signals: list[Communicate] = []
 
     def play_card(self) -> CrewCard:
         card = np.random.choice(self.hand)
@@ -26,45 +44,65 @@ class CrewPlayer:
     def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
         return np.random.choice(tasks)
 
+    def communicate(self) -> tuple[int, Communicate]:
+        if self.has_communicated:
+            raise ValueError("Player has already communicated")
+        signal: Communicate = self.signals[0]
+        self.has_communicated = True
+        return (self.player_id, signal)
+
     def __str__(self):
         return f'Player {self.player_id}'
-    
-    def show_hand_and_task(self):
-        # print suit and rank for each card in hand
 
+    def show_hand_and_task(self):
         print(f'Player {self.player_id} hand: ', [
-                card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
-                card.suit[0] + str(card.rank) for card in self.tasks])
+            card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
+            card.suit[0] + str(card.rank) for card in self.tasks])
+
+    def update_possible_communications(self):
+        self.signals = []
+        suits = {card.suit for card in self.hand}
+        for suit in suits:
+            cards_of_suit = [card for card in self.hand if card.suit == suit]
+            if len(cards_of_suit) == 1:
+                self.signals.append((cards_of_suit[0], Signal.ONLY))
+            else:
+                self.signals.append(
+                    (min(cards_of_suit, key=lambda c: c.rank), Signal.LOWEST))
+                self.signals.append(
+                    (max(cards_of_suit, key=lambda c: c.rank), Signal.HIGHEST))
+
 
 class IntelligentCrewPlayer(CrewPlayer):
     def __init__(self, player_id: int):
         super().__init__(player_id)
-        self.played_cards: list[CrewCard] = []  # Track all played cards
+        self.played_cards: list[CrewCard] = []
 
     def update_state(self, tasks: list[tuple[int, CrewCard]], current_round: list[tuple[int, CrewCard]]):
-        # Update the state with visible tasks, played cards in the current round, and all played cards
         self.state = {
             'tasks': tasks,
             'current_round': current_round,
             'played_cards': self.played_cards,
+            'possible_communications': self.signals,
             'hand': self.hand,
         }
 
     def play_card(self) -> CrewCard:
         if not self.state:
             raise ValueError("State not initialized for IntelligentCrewPlayer")
-        
-        # Simplified decision-making: Play the lowest-ranked card of the leading suit, if possible
+
         leading_suit = self.state['current_round'][0][1].suit if self.state['current_round'] else None
         if leading_suit is None:
             task_suit = self.tasks[0].suit if self.tasks else None
-            legal_actions = [card for card in self.hand if card.suit == task_suit] or self.hand
+            legal_actions = [
+                card for card in self.hand if card.suit == task_suit] or self.hand
             chosen_card = max(legal_actions, key=lambda card: card.rank)
             self.hand.remove(chosen_card)
             self.played_cards.append(chosen_card)
             return chosen_card
         else:
-            legal_actions = [card for card in self.hand if card.suit == leading_suit] or self.hand
+            legal_actions = [
+                card for card in self.hand if card.suit == leading_suit] or self.hand
             chosen_card = min(legal_actions, key=lambda card: card.rank)
             self.hand.remove(chosen_card)
             self.played_cards.append(chosen_card)
@@ -74,13 +112,14 @@ class IntelligentCrewPlayer(CrewPlayer):
 class CrewGame:
     def __init__(self):
         self.players: list[CrewPlayer] = [
-            IntelligentCrewPlayer(0),  # Example: First player is intelligent
+            IntelligentCrewPlayer(0),
             CrewPlayer(1),
             CrewPlayer(2),
             CrewPlayer(3),
         ]
         self.tasks: list[tuple[int, CrewCard]] = []
         self.current_round: list[tuple[int, CrewCard]] = []
+        self.communication_log: list[tuple[int, Communicate]] = []
         self.leading_suit = None
         self.winner = None
         self.deck: list[CrewCard] = self.generate_deck()
@@ -93,7 +132,7 @@ class CrewGame:
         suits = ['B', 'G', 'Y', 'P']
         deck = [CrewCard(suit, rank)
                 for suit in suits for rank in range(1, 10)]
-        rockets = [CrewCard('Rocket', rank) for rank in range(1, 5)]
+        rockets = [CrewCard('R', rank) for rank in range(1, 5)]
         return deck + rockets
 
     def deal_cards(self):
@@ -101,7 +140,9 @@ class CrewGame:
         for i, card in enumerate(self.deck):
             self.players[i % 4].hand.append(card)
         for player in self.players:
-            player.hand = sorted(player.hand, key=lambda card: (card.suit, card.rank))
+            player.hand = sorted(
+                player.hand, key=lambda card: (card.suit, card.rank))
+            player.update_possible_communications()
 
     def assign_tasks(self):
         normal_cards = [card for card in self.deck if not card.is_rocket]
@@ -129,10 +170,16 @@ class CrewGame:
         print(f'Starting round {round_number}')
         for player in self.players:
             player.show_hand_and_task()
+        print("Communication log:", [(log[0], str(log[1][0]) + "-" + str(log[1][1])) for log in self.communication_log])
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
             if isinstance(player, IntelligentCrewPlayer):
                 player.update_state(self.tasks, self.current_round)
+            if not player.has_communicated:
+                player_communication = player.communicate()
+                print(
+                    f'Player {player.player_id} communicated {player_communication[1][0]} {player_communication[1][1]}')
+                self.communication_log.append(player_communication)
             card_played = player.play_card()
             print(
                 f'Player {player.player_id} played {card_played.suit} {card_played.rank}')
@@ -140,14 +187,15 @@ class CrewGame:
                 self.leading_suit = card_played.suit
             self.current_round.append((player.player_id, card_played))
             self.current_player = (self.current_player + 1) % 4
-        return self.resolve_winner(round_number)
+        round_result = self.resolve_winner(round_number)
+        for player in self.players:
+            if not player.has_communicated:
+                player.update_possible_communications()
+        return round_result
 
     def resolve_winner(self, round_number: int) -> bool:
         highest_card = None
         winning_player = None
-        has_task = False
-        supposed_winner = None
-        suppoded_task = None
         played_cards = [card for _, card in self.current_round]
         for player_id, card in self.current_round:
             if highest_card is None or (card.suit == self.leading_suit and card.rank > highest_card.rank) or (card.is_rocket and not highest_card.is_rocket):
@@ -158,7 +206,8 @@ class CrewGame:
                 if task[0] == winning_player:
                     self.players[winning_player].tasks.remove(task[1])
                 else:
-                    print(f'Player {winning_player} take {task[1]} but it should have been Player {task[0]}')
+                    print(
+                        f'Player {winning_player} take {task[1]} but it should have been Player {task[0]}')
                     return False
         print(f'Player {winning_player} won round {round_number}')
         self.current_player = winning_player
