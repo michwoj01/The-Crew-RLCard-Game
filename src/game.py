@@ -1,15 +1,15 @@
 import numpy as np
-from card import Communicate, CrewCard, Signal
-from players import CrewPlayer, IntelligentCrewPlayer, HumanCrewPlayer
+from card import Communicate, CrewCard
+from players import CrewPlayer, IntelligentCrewPlayer
 
 
 class CrewGame:
     def __init__(self, show_logs: bool = False):
         self.players: list[CrewPlayer] = [
-            HumanCrewPlayer(0),
-            CrewPlayer(1),
-            CrewPlayer(2),
-            CrewPlayer(3),
+            IntelligentCrewPlayer(0),
+            IntelligentCrewPlayer(1),
+            IntelligentCrewPlayer(2),
+            IntelligentCrewPlayer(3),
         ]
         self.tasks: list[tuple[int, CrewCard]] = []
         self.current_round: list[tuple[int, CrewCard]] = []
@@ -19,14 +19,16 @@ class CrewGame:
         self.deck: list[CrewCard] = self.generate_deck()
         self.deal_cards()
         self.starting_player: int = self.find_starting_player()
-        self.assign_tasks()
+        self.assign_tasks(3)
         self.current_player = self.starting_player
         self.show_logs = show_logs
+    
+    def play_game(self):
         for i in range(10):
             if not self.play_round(i):
                 break
-            else:
-                print('Game finished')
+        else:
+            print('Game finished')
 
     def generate_deck(self) -> list[CrewCard]:
         suits = ['B', 'G', 'Y', 'P']
@@ -44,18 +46,16 @@ class CrewGame:
                 player.hand, key=lambda card: (card.suit, card.rank))
             player.update_possible_communications()
 
-    def assign_tasks(self):
+    def assign_tasks(self, no_of_tasks: int):
         normal_cards = [card for card in self.deck if not card.is_rocket]
-        task_cards = np.random.choice(normal_cards, 4, replace=False)
-        n = len(task_cards)
-        for i in range(n):
+        task_cards = np.random.choice(normal_cards, no_of_tasks, replace=False)
+        picking_order = [(self.starting_player + i) %
+                          len(self.players) for i in range(no_of_tasks)]
+        for i in picking_order:
             chosen_task = self.players[i].choose_task(task_cards)
             self.tasks.append((i, chosen_task))
             self.players[i].tasks.append(chosen_task)
             task_cards = [card for card in task_cards if card != chosen_task]
-
-        print('Tasks assigned: ', [
-              (player.player_id, player.tasks[0].suit, player.tasks[0].rank) for player in self.players])
 
     def find_starting_player(self) -> int:
         for player in self.players:
@@ -102,7 +102,8 @@ class CrewGame:
         winning_player = None
         played_cards = [card for _, card in self.current_round]
         for player_id, card in self.current_round:
-            if highest_card is None or (card.suit == self.leading_suit and card.rank > highest_card.rank) or (card.is_rocket and not highest_card.is_rocket):
+            if highest_card is None or (card.suit == self.leading_suit and card.rank > highest_card.rank) or (
+                    card.is_rocket and not highest_card.is_rocket):
                 highest_card = card
                 winning_player = player_id
         for owner, task in self.tasks:
