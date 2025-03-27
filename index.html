@@ -1,9 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Crew Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        #game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-board {
+            display: grid;
+            grid-template-rows: 1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            width: 400px;
+            height: 400px;
+            position: relative;
+        }
+
+        .player {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .card {
+            width: 50px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            border-radius: 5px;
+            margin: 5px;
+        }
+
+        .card.P {
+            background-color: pink;
+        }
+
+        .card.G {
+            background-color: green;
+        }
+
+        .card.Y {
+            background-color: yellow;
+            color: black;
+        }
+
+        .card.B {
+            background-color: blue;
+        }
+
+        .card.R {
+            background-color: black;
+        }
+
+        .task {
+            border: 2px solid red;
+        }
+
+        .communication {
+            border: 2px solid blue;
+        }
+
+        .played {
+            width: 70px;
+            height: 100px;
+            position: absolute;
+        }
+    </style>
     <script>
         let socket;
 
@@ -20,6 +103,7 @@
             socket.onopen = () => {
                 socket.send(JSON.stringify({ player_types: playerTypes }));
                 document.getElementById("player-selection").style.display = "none";
+                document.getElementById("game-container").style.display = "flex";
             };
         }
 
@@ -42,29 +126,17 @@
 
         function displayPlayCard(hand) {
             const container = document.getElementById("game-container");
-
-            // Clear previous card-playing UI (if any)
-            const existingPlayCard = document.getElementById("play-card");
-            if (existingPlayCard) {
-                existingPlayCard.remove();
-            }
-
-            // Create a new container for card-playing UI
-            const playCardDiv = document.createElement("div");
-            playCardDiv.id = "play-card";
-            playCardDiv.innerHTML = `<h3>Play a Card</h3>`;
-
+            // create div element below elements from displayRoundState
+            const handDiv = document.createElement("div");
             hand.forEach(card => {
                 const button = document.createElement("button");
                 button.textContent = card;
                 button.onclick = () => {
                     socket.send(JSON.stringify({ action: "play_card", suit: card[0], rank: parseInt(card.slice(1)) }));
                 };
-                playCardDiv.appendChild(button);
+                handDiv.appendChild(button);
             });
-
-            // Append the card-playing UI to the container
-            container.appendChild(playCardDiv);
+            container.appendChild(handDiv);
         }
 
         function displayChooseTask(tasks) {
@@ -82,83 +154,71 @@
 
         function displayCommunicate(signals) {
             const container = document.getElementById("game-container");
-            container.innerHTML = `<h3>Communicate</h3>`;
+            container.innerHTML = `<h3>Choose Communication</h3>`;
             signals.forEach(([card, signal]) => {
                 const button = document.createElement("button");
                 button.textContent = `${card} - ${signal}`;
                 button.onclick = () => {
-                    socket.send(JSON.stringify({ action: "communicate", suit: card[0], rank: parseInt(card.slice(1)), signal }));
+                    socket.send(JSON.stringify({
+                        action: "communicate",
+                        suit: card[0],
+                        rank: parseInt(card.slice(1)),
+                        signal
+                    }));
                 };
                 container.appendChild(button);
             });
         }
 
+        function createCardElement(card, type = "") {
+            if (!card) return null;
+            const suit = card[0];
+            const rank = card.slice(1);
+            const cardDiv = document.createElement("div");
+            cardDiv.className = `card ${suit} ${type}`;
+            cardDiv.textContent = rank;
+            return cardDiv;
+        }
+
         function displayRoundState(roundState) {
             const container = document.getElementById("game-container");
-            container.innerHTML = `<h1>Round ${roundState.roundNumber}</h1>`;
-            // Clear previous round state elements (if any)
-            const existingState = document.getElementById("round-state");
-            if (existingState) {
-                existingState.remove();
+            container.innerHTML = `<h3>Round ${roundState.roundNumber}</h3>`;
+            existingBoard = document.getElementById("game-board");
+            if (existingBoard) {
+                existingBoard.remove();
+            } else {
+                existingBoard = document.createElement("div");
+                existingBoard.id = "game-board";
             }
 
-            // Create a new container for round state
-            const roundStateDiv = document.createElement("div");
-            roundStateDiv.id = "round-state";
-            roundStateDiv.innerHTML = `<h3>Round State</h3>`;
+            for (let i = 0; i < 4; i++) {
+                const playerDiv = document.createElement("div");
+                playerDiv.className = "player";
+                playerDiv.id = `player-${i}`;
+                existingBoard.appendChild(playerDiv);
+            }
 
-            // Display tasks
-            const tasksDiv = document.createElement("div");
-            tasksDiv.innerHTML = `<h4>Tasks</h4>`;
             roundState.tasks.forEach(([playerId, tasks]) => {
-                const taskInfo = document.createElement("p");
-                taskInfo.textContent = `Player ${playerId}: ${tasks.join(", ")}`;
-                tasksDiv.appendChild(taskInfo);
+                const playerDiv = document.getElementById(`player-${playerId}`); // Fixed method call
+                tasks.forEach(task => {
+                    const taskCard = createCardElement(task, "task"); // Corrected variable name
+                    if (playerDiv) playerDiv.appendChild(taskCard); // Updated to use taskCard
+                });
             });
-            roundStateDiv.appendChild(tasksDiv);
 
-            // Display communications
-            const commDiv = document.createElement("div");
-            commDiv.innerHTML = `<h4>Communications</h4>`;
             roundState.communications.forEach(([playerId, communication]) => {
-                const commInfo = document.createElement("p");
-                commInfo.textContent = `Player ${playerId}: ${communication}`;
-                commDiv.appendChild(commInfo);
+                const commCard = createCardElement(communication, "communication");
+                const playerDiv = document.getElementById(`player-${playerId}`); // Fixed method call
+                if (playerDiv) playerDiv.appendChild(commCard);
             });
-            roundStateDiv.appendChild(commDiv);
 
-            // Display grid for positions
-            const stateDiv = document.createElement("div");
-            stateDiv.style.display = "grid";
-            stateDiv.style.gridTemplateColumns = "1fr 1fr 1fr";
-            stateDiv.style.gridTemplateRows = "1fr 1fr";
-            stateDiv.style.gap = "10px";
+            roundState.playedCards.forEach(([playerId, card]) => {
+                const playedCard = createCardElement(card, "played");
+                const playerDiv = document.getElementById(`player-${playerId}`);
+                if (playerDiv) playerDiv.appendChild(playedCard);
+            });
 
-            // Left (Bot 1)
-            const left = document.createElement("div");
-            left.textContent = roundState.left || "Waiting...";
-            left.style.gridColumn = "1";
-            left.style.gridRow = "2";
-            stateDiv.appendChild(left);
-
-            // Up (Bot 2)
-            const up = document.createElement("div");
-            up.textContent = roundState.top || "Waiting...";
-            up.style.gridColumn = "2";
-            up.style.gridRow = "1";
-            stateDiv.appendChild(up);
-
-            // Right (Bot 3)
-            const right = document.createElement("div");
-            right.textContent = roundState.right || "Waiting...";
-            right.style.gridColumn = "3";
-            right.style.gridRow = "2";
-            stateDiv.appendChild(right);
-
-            roundStateDiv.appendChild(stateDiv);
-
-            // Append the round state to the container
-            container.appendChild(roundStateDiv);
+            container.appendChild(existingBoard);
         }
 
         function displayGameOver() {
@@ -186,6 +246,7 @@
         }
     </script>
 </head>
+
 <body>
     <h1>The Crew Game</h1>
     <div id="player-selection">
@@ -206,6 +267,9 @@
         </select>
         <button onclick="startGame()">Start Game</button>
     </div>
-    <div id="game-container"></div>
+    <div id="game-container">
+        <div id="game-board"></div>
+    </div>
 </body>
+
 </html>

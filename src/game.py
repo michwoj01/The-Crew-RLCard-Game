@@ -41,6 +41,15 @@ class CrewGame:
             player.update_possible_communications()
 
     async def assign_tasks(self, no_of_tasks: int):
+        await self.players[0].websocket.send_json({
+            "action": "round_state",
+            "roundState": {
+                "roundNumber": 0,
+                "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
+                "communications": [],
+                "playedCards": [],
+            }
+        })
         normal_cards = [card for card in self.deck if not card.is_rocket]
         task_cards = np.random.choice(normal_cards, no_of_tasks, replace=False)
         picking_order = [(self.starting_player + i) %
@@ -76,6 +85,16 @@ class CrewGame:
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
             if not player.has_communicated:
+                await self.players[0].websocket.send_json({
+                    "action": "round_state",
+                    "roundState": {
+                        "roundNumber": round_number,
+                        "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
+                        "communications": [(log[0], str(log[1][0]) + "-" + str(log[1][1])) for log in self.communication_log],
+                        "playedCards": [],
+                    }
+                })
+
                 player_communication = None
                 if isinstance(player, HumanCrewPlayer):
                     player_communication = await player.communicate()
@@ -84,17 +103,18 @@ class CrewGame:
                 print(
                     f'Player {player.player_id} communicated {player_communication[1][0]} {player_communication[1][1]}')
                 self.communication_log.append(player_communication)
+
             if isinstance(player, HumanCrewPlayer):
-                # Send round state to the client
                 round_state = {
-                    "roundNumber": round_number,
-                    "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
-                    "communications": [(log[0], str(log[1][0]) + "-" + str(log[1][1])) for log in self.communication_log],
-                    "left": "P{0}: {1}".format(self.current_round[0][0], self.current_round[0][1]) if len(self.current_round) > 0 else None,
-                    "top": "P{0}: {1}".format(self.current_round[1][0], self.current_round[1][1]) if len(self.current_round) > 1 else None,
-                    "right": "P{0}: {1}".format(self.current_round[2][0], self.current_round[2][1]) if len(self.current_round) > 1 else None,
-               }
-                await player.websocket.send_json({"action": "round_state", "roundState": round_state})
+                    "action": "round_state",
+                    "roundState": {
+                        "roundNumber": round_number,
+                        "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
+                        "communications": [(log[0], str(log[1][0]) + "-" + str(log[1][1])) for log in self.communication_log],
+                        "playedCards": [(p_id, str(card)) for p_id, card in self.current_round],
+                    }
+                }
+                await player.websocket.send_json(round_state)
                 card_played = await player.play_card()
             elif isinstance(player, IntelligentCrewPlayer):
                 player.update_state(self.tasks, self.current_round)
