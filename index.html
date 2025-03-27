@@ -7,94 +7,205 @@
     <script>
         let socket;
 
-        function connectWebSocket() {
+        async function startGame() {
+            const playerTypes = [
+                document.getElementById("player-1").value,
+                document.getElementById("player-2").value,
+                document.getElementById("player-3").value,
+            ];
+
             socket = new WebSocket("ws://localhost:8000/ws");
+            socket.onmessage = handleMessage;
 
-            socket.onmessage = function(event) {
-                const data = JSON.parse(event.data);
-                console.log("Message from server:", data);
-
-                if (data.status === "card_played") {
-                    alert(`Card played: ${data.card}`);
-                } else if (data.status === "task_chosen") {
-                    alert(`Task chosen: ${data.task}`);
-                } else if (data.status === "communicated") {
-                    alert(`Signal communicated: ${data.signal}`);
-                } else if (data.status === "game_state") {
-                    updateGameState(data.state);
-                }
-            };
-
-            socket.onclose = function() {
-                alert("WebSocket connection closed");
+            socket.onopen = () => {
+                socket.send(JSON.stringify({ player_types: playerTypes }));
+                document.getElementById("player-selection").style.display = "none";
             };
         }
 
-        function updateGameState(state) {
-            const gameStateDiv = document.getElementById("game-state");
-            gameStateDiv.innerHTML = `
-                <h3>Game State</h3>
-                <p><strong>Tasks:</strong> ${JSON.stringify(state.tasks)}</p>
-                <p><strong>Current Round:</strong> ${JSON.stringify(state.current_round)}</p>
-            `;
+        function handleMessage(event) {
+            const data = JSON.parse(event.data);
+            if (data.action === "play_card") {
+                displayPlayCard(data.hand);
+            } else if (data.action === "choose_task") {
+                displayChooseTask(data.tasks);
+            } else if (data.action === "communicate") {
+                displayCommunicate(data.signals);
+            } else if (data.action === "round_state") {
+                displayRoundState(data.roundState);
+            } else if (data.action === "game_over") {
+                displayGameOver();
+            } else if (data.action === "round_failure") {
+                displayRoundFailure(data.message);
+            }
         }
 
-        function playCard() {
-            const suit = document.getElementById("card-suit").value;
-            const rank = parseInt(document.getElementById("card-rank").value);
-            socket.send(JSON.stringify({ action: "play_card", suit, rank }));
+        function displayPlayCard(hand) {
+            const container = document.getElementById("game-container");
+
+            // Clear previous card-playing UI (if any)
+            const existingPlayCard = document.getElementById("play-card");
+            if (existingPlayCard) {
+                existingPlayCard.remove();
+            }
+
+            // Create a new container for card-playing UI
+            const playCardDiv = document.createElement("div");
+            playCardDiv.id = "play-card";
+            playCardDiv.innerHTML = `<h3>Play a Card</h3>`;
+
+            hand.forEach(card => {
+                const button = document.createElement("button");
+                button.textContent = card;
+                button.onclick = () => {
+                    socket.send(JSON.stringify({ action: "play_card", suit: card[0], rank: parseInt(card.slice(1)) }));
+                };
+                playCardDiv.appendChild(button);
+            });
+
+            // Append the card-playing UI to the container
+            container.appendChild(playCardDiv);
         }
 
-        function chooseTask() {
-            const suit = document.getElementById("task-suit").value;
-            const rank = parseInt(document.getElementById("task-rank").value);
-            socket.send(JSON.stringify({ action: "choose_task", suit, rank }));
+        function displayChooseTask(tasks) {
+            const container = document.getElementById("game-container");
+            container.innerHTML = `<h3>Choose a Task</h3>`;
+            tasks.forEach(task => {
+                const button = document.createElement("button");
+                button.textContent = task;
+                button.onclick = () => {
+                    socket.send(JSON.stringify({ action: "choose_task", suit: task[0], rank: parseInt(task.slice(1)) }));
+                };
+                container.appendChild(button);
+            });
         }
 
-        function communicate() {
-            const suit = document.getElementById("signal-suit").value;
-            const rank = parseInt(document.getElementById("signal-rank").value);
-            const signal = parseInt(document.getElementById("signal-type").value);
-            socket.send(JSON.stringify({ action: "communicate", suit, rank, signal }));
+        function displayCommunicate(signals) {
+            const container = document.getElementById("game-container");
+            container.innerHTML = `<h3>Communicate</h3>`;
+            signals.forEach(([card, signal]) => {
+                const button = document.createElement("button");
+                button.textContent = `${card} - ${signal}`;
+                button.onclick = () => {
+                    socket.send(JSON.stringify({ action: "communicate", suit: card[0], rank: parseInt(card.slice(1)), signal }));
+                };
+                container.appendChild(button);
+            });
         }
 
-        function getGameState() {
-            socket.send(JSON.stringify({ action: "get_game_state" }));
+        function displayRoundState(roundState) {
+            const container = document.getElementById("game-container");
+            container.innerHTML = `<h1>Round ${roundState.roundNumber}</h1>`;
+            // Clear previous round state elements (if any)
+            const existingState = document.getElementById("round-state");
+            if (existingState) {
+                existingState.remove();
+            }
+
+            // Create a new container for round state
+            const roundStateDiv = document.createElement("div");
+            roundStateDiv.id = "round-state";
+            roundStateDiv.innerHTML = `<h3>Round State</h3>`;
+
+            // Display tasks
+            const tasksDiv = document.createElement("div");
+            tasksDiv.innerHTML = `<h4>Tasks</h4>`;
+            roundState.tasks.forEach(([playerId, tasks]) => {
+                const taskInfo = document.createElement("p");
+                taskInfo.textContent = `Player ${playerId}: ${tasks.join(", ")}`;
+                tasksDiv.appendChild(taskInfo);
+            });
+            roundStateDiv.appendChild(tasksDiv);
+
+            // Display communications
+            const commDiv = document.createElement("div");
+            commDiv.innerHTML = `<h4>Communications</h4>`;
+            roundState.communications.forEach(([playerId, communication]) => {
+                const commInfo = document.createElement("p");
+                commInfo.textContent = `Player ${playerId}: ${communication}`;
+                commDiv.appendChild(commInfo);
+            });
+            roundStateDiv.appendChild(commDiv);
+
+            // Display grid for positions
+            const stateDiv = document.createElement("div");
+            stateDiv.style.display = "grid";
+            stateDiv.style.gridTemplateColumns = "1fr 1fr 1fr";
+            stateDiv.style.gridTemplateRows = "1fr 1fr";
+            stateDiv.style.gap = "10px";
+
+            // Left (Bot 1)
+            const left = document.createElement("div");
+            left.textContent = roundState.left || "Waiting...";
+            left.style.gridColumn = "1";
+            left.style.gridRow = "2";
+            stateDiv.appendChild(left);
+
+            // Up (Bot 2)
+            const up = document.createElement("div");
+            up.textContent = roundState.top || "Waiting...";
+            up.style.gridColumn = "2";
+            up.style.gridRow = "1";
+            stateDiv.appendChild(up);
+
+            // Right (Bot 3)
+            const right = document.createElement("div");
+            right.textContent = roundState.right || "Waiting...";
+            right.style.gridColumn = "3";
+            right.style.gridRow = "2";
+            stateDiv.appendChild(right);
+
+            roundStateDiv.appendChild(stateDiv);
+
+            // Append the round state to the container
+            container.appendChild(roundStateDiv);
+        }
+
+        function displayGameOver() {
+            const container = document.getElementById("game-container");
+            container.innerHTML = `<h1>"You Win!"</h1>`;
+            const restartButton = document.createElement("button");
+            restartButton.textContent = "Start New Game";
+            restartButton.onclick = () => {
+                location.reload(); // Reload the page to reset the game
+            };
+            container.appendChild(restartButton);
+        }
+
+        function displayRoundFailure(message) {
+            const container = document.getElementById("game-container");
+            const failureMessage = document.createElement("div");
+            failureMessage.innerHTML = `<p style="color: red;">${message}</p>`;
+            container.appendChild(failureMessage);
+            const restartButton = document.createElement("button");
+            restartButton.textContent = "Start New Game";
+            restartButton.onclick = () => {
+                location.reload(); // Reload the page to reset the game
+            };
+            container.appendChild(restartButton);
         }
     </script>
 </head>
-<body onload="connectWebSocket()">
+<body>
     <h1>The Crew Game</h1>
-    <div id="game-state">
-        <h3>Game State</h3>
-        <p>Loading...</p>
+    <div id="player-selection">
+        <label for="player-1">Player 1:</label>
+        <select id="player-1">
+            <option value="intelligent">Intelligent</option>
+            <option value="random">Random</option>
+        </select>
+        <label for="player-2">Player 2:</label>
+        <select id="player-2">
+            <option value="intelligent">Intelligent</option>
+            <option value="random">Random</option>
+        </select>
+        <label for="player-3">Player 3:</label>
+        <select id="player-3">
+            <option value="intelligent">Intelligent</option>
+            <option value="random">Random</option>
+        </select>
+        <button onclick="startGame()">Start Game</button>
     </div>
-    <button onclick="getGameState()">Refresh Game State</button>
-    <div>
-        <h2>Play Card</h2>
-        <label for="card-suit">Suit:</label>
-        <input id="card-suit" type="text">
-        <label for="card-rank">Rank:</label>
-        <input id="card-rank" type="number">
-        <button onclick="playCard()">Play Card</button>
-    </div>
-    <div>
-        <h2>Choose Task</h2>
-        <label for="task-suit">Suit:</label>
-        <input id="task-suit" type="text">
-        <label for="task-rank">Rank:</label>
-        <input id="task-rank" type="number">
-        <button onclick="chooseTask()">Choose Task</button>
-    </div>
-    <div>
-        <h2>Communicate</h2>
-        <label for="signal-suit">Suit:</label>
-        <input id="signal-suit" type="text">
-        <label for="signal-rank">Rank:</label>
-        <input id="signal-rank" type="number">
-        <label for="signal-type">Signal (0=ONLY, 1=LOWEST, 2=HIGHEST):</label>
-        <input id="signal-type" type="number">
-        <button onclick="communicate()">Communicate</button>
-    </div>
+    <div id="game-container"></div>
 </body>
 </html>

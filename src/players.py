@@ -118,45 +118,38 @@ class IntelligentCrewPlayer(CrewPlayer):
 
 
 class HumanCrewPlayer(CrewPlayer):
-    def __init__(self, player_id: int):
+    def __init__(self, player_id: int, websocket):
         super().__init__(player_id)
-        self.selected_card: CrewCard = None
-        self.selected_task: CrewCard = None
-        self.selected_signal: tuple[CrewCard, Signal] = None
+        self.websocket = websocket
 
     async def play_card(self) -> CrewCard:
-        while not self.selected_card or self.selected_card not in self.hand:
-            await asyncio.sleep(0.1)  # Wait for a valid card to be set
-        card = self.selected_card
-        self.hand.remove(card)
-        self.selected_card = None  # Reset after playing
-        return card
+        await self.websocket.send_json({"action": "play_card", "hand": [str(card) for card in self.hand]})
+        while True:
+            message = await self.websocket.receive_json()
+            if message["action"] == "play_card":
+                card = CrewCard(message["suit"], message["rank"])
+                if card in self.hand:
+                    self.hand.remove(card)
+                    return card
 
     async def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
-        while not self.selected_task or self.selected_task not in tasks:
-            await asyncio.sleep(0.1)  # Wait for a valid task to be set
-        task = self.selected_task
-        self.selected_task = None  # Reset after choosing
-        return task
+        await self.websocket.send_json({"action": "choose_task", "tasks": [str(task) for task in tasks]})
+        while True:
+            message = await self.websocket.receive_json()
+            if message["action"] == "choose_task":
+                task = CrewCard(message["suit"], message["rank"])
+                if task in tasks:
+                    return task
 
     async def communicate(self) -> tuple[int, Communicate]:
         if self.has_communicated:
             raise ValueError("Player has already communicated")
-        while not self.selected_signal or self.selected_signal not in self.signals:
-            await asyncio.sleep(0.1)  # Wait for a valid signal to be set
-        signal = self.selected_signal
-        self.has_communicated = True
-        self.selected_signal = None  # Reset after communicating
-        return (self.player_id, signal)
-
-    def set_selected_card(self, card: CrewCard):
-        """Set the card to be played."""
-        self.selected_card = card
-
-    def set_selected_task(self, task: CrewCard):
-        """Set the task to be chosen."""
-        self.selected_task = task
-
-    def set_selected_signal(self, signal: tuple[CrewCard, Signal]):
-        """Set the signal to be communicated."""
-        self.selected_signal = signal
+        await self.websocket.send_json({"action": "communicate", "signals": [(str(card), str(signal)) for card, signal in self.signals]})
+        while True:
+            message = await self.websocket.receive_json()
+            if message["action"] == "communicate":
+                card = CrewCard(message["suit"], message["rank"])
+                signal = Signal[message["signal"]]
+                if (card, signal) in self.signals:
+                    self.has_communicated = True
+                    return self.player_id, (card, signal)

@@ -1,0 +1,40 @@
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import HTMLResponse
+from game import CrewGame
+from players import IntelligentCrewPlayer, CrewPlayer, HumanCrewPlayer
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+app = FastAPI()
+game = None
+
+
+@app.get("/")
+async def get():
+    with open("index.html") as f:
+        return HTMLResponse(f.read())
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    global game
+
+    # Receive player configuration
+    config = await websocket.receive_json()
+    player_types = config["player_types"]
+
+    # Initialize players
+    players = [HumanCrewPlayer(0, websocket)]
+    for i, player_type in enumerate(player_types):
+        if player_type == "intelligent":
+            players.append(IntelligentCrewPlayer(i + 1))
+        else:
+            players.append(CrewPlayer(i + 1))
+
+    # Initialize game
+    game = CrewGame(players=players, show_logs=True)
+    # Prepare the game
+    await game.assign_tasks(3)
+    # Start the game
+    await game.play_game()
