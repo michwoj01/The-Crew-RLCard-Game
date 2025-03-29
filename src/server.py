@@ -35,6 +35,6 @@ async def websocket_endpoint(websocket: WebSocket):
     # Initialize game
     game = CrewGame(players=players, show_logs=True)
     # Prepare the game
-    await game.assign_tasks(3)
+    await game.assign_tasks(4)
     # Start the game
     await game.play_game()

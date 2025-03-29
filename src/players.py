@@ -1,5 +1,4 @@
 import numpy as np
-import asyncio
 from card import Communicate, CrewCard, Signal
 
 
@@ -11,8 +10,17 @@ class CrewPlayer:
         self.tasks: list[CrewCard] = []
         self.signals: list[Communicate] = []
 
-    def play_card(self) -> CrewCard:
-        card = np.random.choice(self.hand)
+    def play_card(self, current_round) -> CrewCard:
+        card = None
+        if not current_round:
+            card = np.random.choice(self.hand)
+        else:
+            leading_suit = current_round[0][1].suit
+            legal_actions = [card for card in self.hand if card.suit == leading_suit]
+            if legal_actions:
+                card = np.random.choice(legal_actions, key=lambda c: c.rank)
+            else:
+                card = np.random.choice(self.hand, key=lambda c: c.rank)
         self.hand.remove(card)
         return card
 
@@ -54,10 +62,9 @@ class IntelligentCrewPlayer(CrewPlayer):
         self.state = None
         self.played_cards: list[CrewCard] = []
 
-    def update_state(self, tasks: list[tuple[int, CrewCard]], current_round: list[tuple[int, CrewCard]]):
+    def update_state(self, tasks: list[tuple[int, CrewCard]]):
         self.state = {
             'tasks': tasks,
-            'current_round': current_round,
             'played_cards': self.played_cards,
             'possible_communications': self.signals,
             'hand': self.hand,
@@ -74,11 +81,10 @@ class IntelligentCrewPlayer(CrewPlayer):
                 return task
         return np.random.choice(tasks)
 
-    def play_card(self) -> CrewCard:
+    def play_card(self, current_round) -> CrewCard:
         if not self.state:
             raise ValueError("State not initialized for IntelligentCrewPlayer")
 
-        current_round = self.state['current_round']
         leading_suit = current_round[0][1].suit if current_round else None
         mapped_all_tasks = list(map(lambda task: task[1], self.state['tasks']))
         if leading_suit is None:
@@ -122,8 +128,16 @@ class HumanCrewPlayer(CrewPlayer):
         super().__init__(player_id)
         self.websocket = websocket
 
-    async def play_card(self) -> CrewCard:
-        await self.websocket.send_json({"action": "play_card", "hand": [str(card) for card in self.hand]})
+    async def play_card(self, current_round) -> CrewCard:
+        legal_actions = None
+        if not current_round:
+            legal_actions = self.hand
+        else:
+            leading_suit = current_round[0][1].suit
+            legal_actions = [card for card in self.hand if card.suit == leading_suit]
+            if not legal_actions:
+                legal_actions = self.hand
+        await self.websocket.send_json({"action": "play_card", "hand": [str(card) for card in legal_actions]})
         while True:
             message = await self.websocket.receive_json()
             if message["action"] == "play_card":
@@ -133,7 +147,7 @@ class HumanCrewPlayer(CrewPlayer):
                     return card
 
     async def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
-        await self.websocket.send_json({"action": "choose_task", "tasks": [str(task) for task in tasks]})
+        await self.websocket.send_json({"action": "choose_task", "tasks": [str(task) for task in tasks], "hand": [str(card) for card in self.hand]})
         while True:
             message = await self.websocket.receive_json()
             if message["action"] == "choose_task":
@@ -149,7 +163,7 @@ class HumanCrewPlayer(CrewPlayer):
             message = await self.websocket.receive_json()
             if message["action"] == "communicate":
                 card = CrewCard(message["suit"], message["rank"])
-                signal = Signal[message["signal"]]
+                signal = Signal.fromLetter(message["signal"])
                 if (card, signal) in self.signals:
                     self.has_communicated = True
                     return self.player_id, (card, signal)

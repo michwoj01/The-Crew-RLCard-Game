@@ -20,36 +20,62 @@
             display: none;
             flex-direction: column;
             align-items: center;
+            gap: 20px;
         }
 
         #game-board {
             display: grid;
-            grid-template-rows: 1fr 1fr 1fr;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: repeat(4, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
             width: 400px;
-            height: 400px;
+            height: 200px;
             position: relative;
+        }
+
+        #game-hand {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-top: 50px;
+        }
+
+        .player-label {
+            font-weight: bold;
+        }
+
+        .highlight {
+            color: rgb(194, 90, 90); 
+        }
+
+        .empty-cell {
+            background-color: #f0f0f0; 
+            width: 30px;
+            height: 50px;
         }
 
         .player {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             align-items: center;
-            justify-content: center;
-            text-align: center;
+            justify-content: flex-start;
+            text-align: left;
+            margin-bottom: 10px;
+        }
+
+        .player span {
+            margin-right: 10px;
         }
 
         .card {
-            width: 50px;
-            height: 70px;
+            width: 30px;
+            height: 50px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
             color: white;
-            border-radius: 5px;
-            margin: 5px;
+            border-radius: 3px;
         }
 
         .card.P {
@@ -66,7 +92,7 @@
         }
 
         .card.B {
-            background-color: blue;
+            background-color: rgb(23, 234, 237);
         }
 
         .card.R {
@@ -81,11 +107,6 @@
             border: 2px solid blue;
         }
 
-        .played {
-            width: 70px;
-            height: 100px;
-            position: absolute;
-        }
     </style>
     <script>
         let socket;
@@ -112,7 +133,7 @@
             if (data.action === "play_card") {
                 displayPlayCard(data.hand);
             } else if (data.action === "choose_task") {
-                displayChooseTask(data.tasks);
+                displayChooseTask(data.tasks, data.hand);
             } else if (data.action === "communicate") {
                 displayCommunicate(data.signals);
             } else if (data.action === "round_state") {
@@ -125,8 +146,8 @@
         }
 
         function displayPlayCard(hand) {
-            const container = document.getElementById("game-container");
-            // create div element below elements from displayRoundState
+            const container = document.getElementById("game-select");
+            container.innerHTML = `<h3>Choose a Card to play</h3>`;
             const handDiv = document.createElement("div");
             hand.forEach(card => {
                 const button = document.createElement("button");
@@ -140,7 +161,7 @@
         }
 
         function displayChooseTask(tasks) {
-            const container = document.getElementById("game-container");
+            const container = document.getElementById("game-select");
             container.innerHTML = `<h3>Choose a Task</h3>`;
             tasks.forEach(task => {
                 const button = document.createElement("button");
@@ -153,7 +174,7 @@
         }
 
         function displayCommunicate(signals) {
-            const container = document.getElementById("game-container");
+            const container = document.getElementById("game-select");
             container.innerHTML = `<h3>Choose Communication</h3>`;
             signals.forEach(([card, signal]) => {
                 const button = document.createElement("button");
@@ -181,44 +202,63 @@
         }
 
         function displayRoundState(roundState) {
-            const container = document.getElementById("game-container");
-            container.innerHTML = `<h3>Round ${roundState.roundNumber}</h3>`;
-            existingBoard = document.getElementById("game-board");
-            if (existingBoard) {
-                existingBoard.remove();
-            } else {
-                existingBoard = document.createElement("div");
-                existingBoard.id = "game-board";
-            }
+            const existingBoard = document.getElementById("game-board");
+            existingBoard.innerHTML = "";
+            
+            // Add header with round number
+            const header = document.getElementById("game-header");
+            header.innerHTML = `<h2>Round ${roundState.roundNumber}</h2>`;
+
+            const startingPlayer = roundState.startingPlayer;
+
+            const horizontalDiv = document.getElementById("game-hand");
+            horizontalDiv.innerHTML = "";
+            roundState.hand.forEach(card => {
+                const cardDiv = createCardElement(card);
+                horizontalDiv.appendChild(cardDiv);
+            });
 
             for (let i = 0; i < 4; i++) {
-                const playerDiv = document.createElement("div");
-                playerDiv.className = "player";
-                playerDiv.id = `player-${i}`;
-                existingBoard.appendChild(playerDiv);
+                // Nazwa gracza
+                const playerLabel = document.createElement("div");
+                playerLabel.className = "player-label";
+                if (i === startingPlayer) playerLabel.classList.add("highlight");
+                playerLabel.textContent = `player-${i}`;
+                existingBoard.appendChild(playerLabel);
+
+                // Task
+                const tasks = roundState.tasks.find(([playerId]) => playerId === i)?.[1] || [];
+                const taskCell = document.createElement("div");
+                if (tasks.length > 0) {
+                    const taskCard = createCardElement(tasks[0], "task");
+                    taskCell.appendChild(taskCard);
+                } else {
+                    taskCell.className = "empty-cell";
+                }
+                existingBoard.appendChild(taskCell);
+
+                // Komunikat
+                const communication = roundState.communications.find(([playerId]) => playerId === i)?.[1];
+                const commCell = document.createElement("div");
+                if (communication) {
+                    const commCard = createCardElement(communication, "communication");
+                    commCell.appendChild(commCard);
+                } else {
+                    commCell.className = "empty-cell";
+                }
+                existingBoard.appendChild(commCell);
+
+                // Zagrana karta
+                const playedCards = roundState.playedCards.find(([playerId]) => playerId === i)?.[1];
+                const playedCell = document.createElement("div");
+                if (playedCards) {
+                    const playedCard = createCardElement(playedCards, "played");
+                    playedCell.appendChild(playedCard);
+                } else {
+                    playedCell.className = "empty-cell";
+                }
+                existingBoard.appendChild(playedCell);
             }
-
-            roundState.tasks.forEach(([playerId, tasks]) => {
-                const playerDiv = document.getElementById(`player-${playerId}`); // Fixed method call
-                tasks.forEach(task => {
-                    const taskCard = createCardElement(task, "task"); // Corrected variable name
-                    if (playerDiv) playerDiv.appendChild(taskCard); // Updated to use taskCard
-                });
-            });
-
-            roundState.communications.forEach(([playerId, communication]) => {
-                const commCard = createCardElement(communication, "communication");
-                const playerDiv = document.getElementById(`player-${playerId}`); // Fixed method call
-                if (playerDiv) playerDiv.appendChild(commCard);
-            });
-
-            roundState.playedCards.forEach(([playerId, card]) => {
-                const playedCard = createCardElement(card, "played");
-                const playerDiv = document.getElementById(`player-${playerId}`);
-                if (playerDiv) playerDiv.appendChild(playedCard);
-            });
-
-            container.appendChild(existingBoard);
         }
 
         function displayGameOver() {
@@ -268,7 +308,10 @@
         <button onclick="startGame()">Start Game</button>
     </div>
     <div id="game-container">
+        <div id="game-header"></div>
         <div id="game-board"></div>
+        <div id="game-hand"></div>
+        <div id="game-select"></div>
     </div>
 </body>
 

@@ -6,9 +6,19 @@ class Signal(Enum):
     HIGHEST = 2
     ONLY = 3
 
+    def fromLetter(letter: str):
+        if letter == 'L':
+            return Signal.LOWEST
+        elif letter == 'H':
+            return Signal.HIGHEST
+        elif letter == 'O':
+            return Signal.ONLY
+        else:
+            raise ValueError(f"Invalid signal letter: {letter}")
+
     # implement printing Signal
     def __str__(self):
-        return self.name
+        return self.name[0]
 
 
 class CrewCard:
