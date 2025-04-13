@@ -8,10 +8,13 @@ The Crew RLCard Game is a simulation of The Crew card game, designed for researc
 
 ```plaintext
 the-crew-rlcard-game
-├── src
-│   ├── game.py          # Main entry point for the game
+├── src                  # Source code for the project
+├── index.html           # HTML file for the web interface
+├── LICENSE              # License file
+├── README.md            # Project documentation
 ├── requirements.txt     # List of project dependencies
-└── README.md            # Project documentation
+└── run_human_game.sh    # Shell script to run a human game
+
 ```
 
 ## Setup Instructions
@@ -28,14 +31,6 @@ the-crew-rlcard-game
    ```bash
    pip install -r requirements.txt
    ```
-
-## Usage
-
-To run the bridge game, execute the following command:
-
-```bash
-python src/game.py
-```
 
 ## License
 

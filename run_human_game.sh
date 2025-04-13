@@ -4,4 +4,4 @@
 export PYTHONPATH=$(dirname "$0")/src
 
 # Run uvicorn with the server module
-uvicorn src.server:app --reload
+uvicorn src.human_game:app --reload

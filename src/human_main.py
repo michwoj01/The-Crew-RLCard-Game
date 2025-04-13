@@ -1,7 +1,8 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
-from game import CrewGame
-from players import IntelligentCrewPlayer, CrewPlayer, HumanCrewPlayer
+from human_game import HumanCrewGame
+from players import CrewPlayer
+from human_players import HumanCrewPlayer, IntelligentCrewPlayer
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +35,7 @@ async def websocket_endpoint(websocket: WebSocket):
             players.append(CrewPlayer(i + 1))
 
     # Initialize game
-    game = CrewGame()
+    game = HumanCrewGame()
     # Prepare the game
     await game.init_game(players=players, no_missions=4, show_hands=True)
     # Start the game

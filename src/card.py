@@ -32,6 +32,9 @@ class CrewCard:
 
     def __str__(self):
         return f'{self.suit}{self.rank}'
+    
+    def to_tuple(self):
+        return (self.suit, self.rank)
 
 
 Communicate = tuple[CrewCard, Signal]
