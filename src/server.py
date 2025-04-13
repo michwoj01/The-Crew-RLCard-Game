@@ -15,6 +15,7 @@ async def get():
     with open("index.html") as f:
         return HTMLResponse(f.read())
 
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -33,8 +34,8 @@ async def websocket_endpoint(websocket: WebSocket):
             players.append(CrewPlayer(i + 1))
 
     # Initialize game
-    game = CrewGame(players=players, show_logs=True)
+    game = CrewGame()
     # Prepare the game
-    await game.assign_tasks(4)
+    await game.init_game(players=players, no_missions=4, show_hands=True)
     # Start the game
     await game.play_game()

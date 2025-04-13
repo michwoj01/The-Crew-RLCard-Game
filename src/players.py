@@ -7,7 +7,7 @@ class CrewPlayer:
         self.player_id: int = player_id
         self.has_communicated: bool = False
         self.hand: list[CrewCard] = []
-        self.tasks: list[CrewCard] = []
+        self.missions: list[CrewCard] = []
         self.signals: list[Communicate] = []
 
     def play_card(self, current_round) -> CrewCard:
@@ -18,9 +18,9 @@ class CrewPlayer:
             leading_suit = current_round[0][1].suit
             legal_actions = [card for card in self.hand if card.suit == leading_suit]
             if legal_actions:
-                card = np.random.choice(legal_actions, key=lambda c: c.rank)
+                card = max(legal_actions, key=lambda c: c.rank)  # Select the card with the highest rank
             else:
-                card = np.random.choice(self.hand, key=lambda c: c.rank)
+                card = max(self.hand, key=lambda c: c.rank)  # Select the card with the highest rank
         self.hand.remove(card)
         return card
 
@@ -33,6 +33,10 @@ class CrewPlayer:
         signal: Communicate = self.signals[0]
         self.has_communicated = True
         return (self.player_id, signal)
+    
+    def complete_mission(self, card: CrewCard):
+        if card in self.missions:
+            self.missions.remove(card)
 
     def __str__(self):
         return f'Player {self.player_id}'
@@ -40,7 +44,7 @@ class CrewPlayer:
     def show_hand_and_task(self):
         print(f'Player {self.player_id} hand: ', [
             card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
-            card.suit[0] + str(card.rank) for card in self.tasks])
+            card.suit[0] + str(card.rank) for card in self.missions])
 
     def update_possible_communications(self):
         self.signals = []
@@ -88,9 +92,9 @@ class IntelligentCrewPlayer(CrewPlayer):
         leading_suit = current_round[0][1].suit if current_round else None
         mapped_all_tasks = list(map(lambda task: task[1], self.state['tasks']))
         if leading_suit is None:
-            task_suit = self.tasks[0].suit if self.tasks else None
+            task_suit = self.missions[0].suit if self.missions else None
             possible_actions = [card for card in self.hand if card.suit == task_suit and (
-                card not in mapped_all_tasks or card in self.tasks)]
+                card not in mapped_all_tasks or card in self.missions)]
             if len(possible_actions) > 0:
                 chosen_card = max(possible_actions, key=lambda card: card.rank)
             else:
@@ -106,8 +110,8 @@ class IntelligentCrewPlayer(CrewPlayer):
             mapped_leading_player_tasks = list(map(lambda task: task[1], leading_player_tasks))
 
             mission_card_for_leading_player = next((card for card in mapped_leading_player_tasks if card in self.hand), None)
-            if any(card in list(map(lambda card: card[1], current_round)) for card in self.tasks):
-                legal_actions_to_take = [card for card in self.hand if card.suit == leading_suit and (card not in mapped_all_tasks or card in self.tasks)] or [card for card in self.hand if card.suit == leading_suit] or self.hand
+            if any(card in list(map(lambda card: card[1], current_round)) for card in self.missions):
+                legal_actions_to_take = [card for card in self.hand if card.suit == leading_suit and (card not in mapped_all_tasks or card in self.missions)] or [card for card in self.hand if card.suit == leading_suit] or self.hand
                 maybe_rocket = next((card for card in legal_actions_to_take if card.is_rocket), None)
                 if maybe_rocket is not None:
                     chosen_card = maybe_rocket
