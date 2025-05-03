@@ -5,7 +5,7 @@ from players import CrewPlayer
 
 register(
     env_id='crew',
-    entry_point='env:CrewRLCardEnv',
+    entry_point='env:CrewEnv',
 )
 
 env = rlcard.make('crew')

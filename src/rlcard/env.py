@@ -11,17 +11,10 @@ class CrewEnv(Env):
         super().__init__(config)
 
     def reset(self) -> tuple[np.ndarray, int]:
-        '''
-        Returns the beggining state of the first player and his ID
-        '''
         state, player = self.game.init_game(self.agents, no_missions=4)
         return self._extract_state(state), player
 
     def step(self, action, raw_action=False) -> tuple[dict, int]:
-        '''
-        Takes action taken by the current player
-        Returns the next state and the ID of the next player
-        '''
         card = self._decode_action(action)
         self.action_recorder.append((self.get_player_id(), card))
         next_state, next_player = self.game.step(card)
@@ -43,7 +36,6 @@ class CrewEnv(Env):
         return {
             'hand': [[c.to_tuple() for c in player.hand] for player in self.agents],
             'missions': [[c.to_tuple() for c in player.missions] for player in self.agents],
-            'signals': [[(c.to_tuple(), signal.value) for c, signal in player.signals] for player in self.agents],
             'tricks': [[(pid, c.to_tuple()) for pid, c in trick] for trick in self.game.tricks],
             'current_player': self.get_player_id(),
             'current_trick': [(pid, c.to_tuple()) for pid, c in self.game.current_trick],
@@ -61,7 +53,7 @@ class CrewEnv(Env):
             'raw_legal_actions': legal_action_ids
         }
 
-    def _get_legal_actions(self, hand: list[CrewCard]) -> list[CrewCard | Communicate]:
+    def _get_legal_actions(self, hand: list[CrewCard]) -> list[CrewCard]:
         if not self.game.current_trick:
             legal_actions = hand
         else:
@@ -71,23 +63,23 @@ class CrewEnv(Env):
             if not legal_actions:
                 legal_actions = hand
 
-        if not self.game.players[self.get_player_id()].has_communicated:
-            signals = []
-            for suit in ['B', 'G', 'Y', 'P', 'R']:
-                cards_of_suit = [card for card in hand if card.suit == suit]
-                if cards_of_suit:
-                    if len(cards_of_suit) == 1:
-                        signals.append(Communicate(
-                            cards_of_suit[0], Signal.ONLY))
-                    else:
-                        signals.append(Communicate(
-                            min(cards_of_suit, key=lambda c: c.rank), Signal.LOWEST))
-                        signals.append(Communicate(
-                            max(cards_of_suit, key=lambda c: c.rank), Signal.HIGHEST))
-            legal_actions.extend(signals)
+        # if not self.game.players[self.get_player_id()].has_communicated:
+        #     signals = []
+        #     for suit in ['B', 'G', 'Y', 'P', 'R']:
+        #         cards_of_suit = [card for card in hand if card.suit == suit]
+        #         if cards_of_suit:
+        #             if len(cards_of_suit) == 1:
+        #                 signals.append(Communicate(
+        #                     cards_of_suit[0], Signal.ONLY))
+        #             else:
+        #                 signals.append(Communicate(
+        #                     min(cards_of_suit, key=lambda c: c.rank), Signal.LOWEST))
+        #                 signals.append(Communicate(
+        #                     max(cards_of_suit, key=lambda c: c.rank), Signal.HIGHEST))
+        #     legal_actions.extend(signals)
         return legal_actions
 
-    def _decode_action(self, action: int) -> CrewCard | Communicate:
+    def _decode_action(self, action: int) -> CrewCard:
         if action < 40:  # Regular card action
             suit = ['B', 'G', 'Y', 'P', 'R'][action // 9]
             rank = action % 9 + 1

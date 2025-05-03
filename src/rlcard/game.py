@@ -52,7 +52,6 @@ class CrewGame:
             self.players[i % 4].hand.append(card)
         for player in self.players:
             player.hand.sort(key=lambda card: (card.suit, card.rank))
-            player.update_possible_communications()
 
     def _assign_tasks(self, no_of_tasks: int):
         task_cards = np.random.choice(
@@ -112,10 +111,9 @@ class CrewGame:
         player: CrewPlayer = self.players[player_id]
         return {
             'hand': player.hand,
-            'missions': player.missions,
-            'signals': player.signals,
+            'missions': player.missions
         }
-    
+
     def is_over(self) -> bool:
         return self.game_failed or all(len(player.missions) == 0 for player in self.players)
 
