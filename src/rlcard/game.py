@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 from utils.card import Communicate, CrewCard
-from players import CrewRLCardPlayer
+from players import CrewPlayer
 
 # Configure logging
 logging.basicConfig(
@@ -16,7 +16,7 @@ logging.basicConfig(
 
 class CrewGame:
     def __init__(self):
-        self.players: list[CrewRLCardPlayer] = []
+        self.players: list[CrewPlayer] = []
         self.deck: list[CrewCard] = []
         self.tricks: list[list[tuple[int, CrewCard]]] = []
         self.missions: list[tuple[int, CrewCard]] = []
@@ -28,7 +28,7 @@ class CrewGame:
         self.winner = None
         self.game_failed = False
 
-    def init_game(self, players: list[CrewRLCardPlayer], no_missions: int, show_hands: bool = False):
+    def init_game(self, players: list[CrewPlayer], no_missions: int, show_hands: bool = False):
         self.tricks = []
         self.missions = []
         self.current_trick = []
@@ -70,7 +70,7 @@ class CrewGame:
         return starting_player
 
     def step(self, card: CrewCard) -> tuple[dict, int]:
-        player: CrewRLCardPlayer = self.players[self.current_player]
+        player: CrewPlayer = self.players[self.current_player]
         if card not in player.hand:
             raise ValueError("Invalid action: card not in hand")
         player.hand.remove(card)
@@ -109,7 +109,7 @@ class CrewGame:
         self.leading_suit = None
 
     def get_state(self, player_id: int) -> dict:
-        player: CrewRLCardPlayer = self.players[player_id]
+        player: CrewPlayer = self.players[player_id]
         return {
             'hand': player.hand,
             'missions': player.missions,

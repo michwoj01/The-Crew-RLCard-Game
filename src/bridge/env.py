@@ -3,8 +3,7 @@ from rlcard.envs import Env
 from utils.card import CrewCard, Communicate, Signal
 from game import CrewGame
 
-
-class CrewEnv(Env):
+class CrewRLCardEnv(Env):
     def __init__(self, config):
         self.game = CrewGame()
         self.name = 'crew'
@@ -50,18 +49,17 @@ class CrewEnv(Env):
         }
 
     def _extract_state(self, state: dict) -> dict:
-        obs = self._encode_actions(state['hand'])
+        obs = self._encode_cards(state['hand'])
         raw_legal_actions = self._get_legal_actions(state['hand'])
-        legal_action_ids = [self._encode_action(
-            card) for card in raw_legal_actions]
+        legal_action_ids = [self._encode_action(card) for card in raw_legal_actions]
         legal_actions = {action_id: 1.0 for action_id in legal_action_ids}
         return {
             'obs': np.array(obs, dtype=np.int32),
             'legal_actions': legal_actions,
             'raw_legal_actions': legal_action_ids
         }
-
-    def _get_legal_actions(self, hand: list[CrewCard]) -> list[CrewCard | Communicate]:
+    
+    def _get_legal_actions(self, hand: list[CrewCard]) -> list[CrewCard]:
         if not self.game.current_trick:
             legal_actions = hand
         else:
@@ -70,61 +68,37 @@ class CrewEnv(Env):
                 card for card in hand if card.suit == leading_suit]
             if not legal_actions:
                 legal_actions = hand
-
-        if not self.game.players[self.get_player_id()].has_communicated:
-            signals = []
-            for suit in ['B', 'G', 'Y', 'P', 'R']:
-                cards_of_suit = [card for card in hand if card.suit == suit]
-                if cards_of_suit:
-                    if len(cards_of_suit) == 1:
-                        signals.append(Communicate(
-                            cards_of_suit[0], Signal.ONLY))
-                    else:
-                        signals.append(Communicate(
-                            min(cards_of_suit, key=lambda c: c.rank), Signal.LOWEST))
-                        signals.append(Communicate(
-                            max(cards_of_suit, key=lambda c: c.rank), Signal.HIGHEST))
-            legal_actions.extend(signals)
         return legal_actions
-
-    def _decode_action(self, action: int) -> CrewCard | Communicate:
-        if action < 40:  # Regular card action
-            suit = ['B', 'G', 'Y', 'P', 'R'][action // 9]
-            rank = action % 9 + 1
-            return CrewCard(suit, rank)
-        else:  # Signaling action
-            return self._decode_signal(action)
+    def _decode_action(self, action: int):
+        suit = ['B', 'G', 'Y', 'P', 'R'][action // 9]
+        rank = action % 9 + 1
+        return CrewCard(suit, rank)
 
     def _decode_signal(self, action: int) -> Communicate:
-        card_code = action // 40
-        signal_code = action % 40
+        card_code = action // 10
+        signal_code = action % 10
         suit_index = card_code // 9
         rank = (card_code % 9) + 1
         card = CrewCard(['B', 'G', 'Y', 'P', 'R'][suit_index], rank)
         signal = Signal(signal_code)
         return card, signal
 
+    # addtional methods
+
     def _encode_action(self, card: CrewCard) -> int:
         suit_index = ['B', 'G', 'Y', 'P', 'R'].index(card.suit)
         return suit_index * 9 + (card.rank - 1)
 
-    def _encode_signal_action(self, card: CrewCard, signal_type: Signal) -> int:
-        base = self._encode_action(card)
-        if signal_type == Signal.LOWEST:
-            return 40 + base
-        elif signal_type == Signal.HIGHEST:
-            return 80 + base
-        elif signal_type == Signal.ONLY:
-            return 120 + base
-        else:
-            raise ValueError(f"Unknown signal type: {signal_type}")
-
-    def _encode_actions(self, hand: list[CrewCard], signals: list[Communicate] = None) -> list[int]:
+    def _encode_cards(self, hand: list[CrewCard]) -> list[int]:
         encoded = [0] * 40
         for card in hand:
             idx = self._encode_action(card)
             encoded[idx] = 1
-        # for card, signal in signals:
-        #     idx = self._encode_signal_action(card, signal)
-        #     encoded[idx] = 1
+        return encoded
+
+    def _encode_signals(self, hand: list[Communicate]) -> list[int]:
+        encoded = [0] * 443
+        for card, signal in hand:
+            idx = self._encode_action(card) * 10 + signal.value
+            encoded[idx] = 1
         return encoded

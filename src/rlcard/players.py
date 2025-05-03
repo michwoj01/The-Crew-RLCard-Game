@@ -2,7 +2,7 @@ import numpy as np
 from utils.card import CrewCard, Communicate, Signal
 from rlcard.agents import RandomAgent
 
-class CrewRLCardPlayer(RandomAgent):
+class CrewPlayer(RandomAgent):
 
     def __init__(self, num_actions, player_id: int):
         super().__init__(num_actions)
