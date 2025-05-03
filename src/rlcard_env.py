@@ -1,4 +1,5 @@
 import asyncio
+import numpy as np
 from rlcard.envs import Env
 from card import CrewCard
 from game import CrewGame
@@ -21,64 +22,37 @@ class CrewRLCardEnv(Env):
             'missions': [[c.to_tuple() for c in player.missions] for player in self.players],
             'signals': [[(c.to_tuple(), signal.value) for c, signal in player.signals] for player in self.players],
             'tricks': [[(pid, c.to_tuple()) for pid, c in trick] for trick in self.game.tricks],
-            'current_player': self.game.current_player,
+            'current_player': self.get_player_id(),
             'current_trick': [(pid, c.to_tuple()) for pid, c in self.game.current_trick],
         }
 
-    def get_player_id(self):
-        return self.game.current_player
-
-    def get_state(self, player_id):
-        return self._extract_state(self.game.get_state(player_id))
-
     def reset(self) -> dict:
-        asyncio.run(self.game.init_game(self.players, no_missions=4))
+        self.game.init_game(self.players, no_missions=4)
         self.game_failed = False
         self.game.tricks = []
-        self.state = self._extract_state()
+        self.state = self._extract_state(
+            self.game.get_state(self.get_curr_player_id()))
         return self.state
 
-    def step(self, action) -> tuple:
-        player: CrewPlayer = self.players[self.game.current_player]
-        card_to_play = player.play_card(self.game.current_trick)
+    def step(self, action):
+        decoded_action = self._decode_action(action)
+        game_over = self.game.step(decoded_action)
 
-        if card_to_play not in player.hand:
-            raise ValueError("Invalid action: card not in hand")
-
-        player.hand.remove(card_to_play)
-        self.game.current_trick.append((player.player_id, card_to_play))
-
-        # Update leading suit if first card
-        if len(self.game.current_trick) == 1:
-            self.game.leading_suit = card_to_play.suit
-
-        self.game.current_player = (self.game.current_player + 1) % 4
-
-        if len(self.game.current_trick) == 4:
-            result, msg = self.game._resolve_winner(len(self.game.tricks))
-            self.game.tricks.append(self.game.current_trick)
-            self.game.current_trick = []
-            self.game.leading_suit = None
-            if not result:
-                self.game_failed = True
-
-        self.state = self.get_state(self.game.current_player)
+        self.state = self.get_state(self.get_curr_player())
         reward = self._get_reward()
         done = self._is_done()
         return self.state, reward, done, {}
 
-    def _extract_state(self, state) -> dict:
-        current_player: CrewPlayer = self.game.players[self.game.current_player]
-        state = {
-            'obs': self._encode_cards(current_player.hand),
+    def _extract_state(self, state=None) -> dict:
+        obs = self._encode_cards(self.get_curr_player().hand)
+        return {
+            'obs': np.array(obs),
             'legal_actions': self._get_legal_actions()
         }
-        return state
 
     def _get_legal_actions(self) -> dict:
-        current_player = self.game.players[self.game.current_player]
         return {
-            self._encode_action(card): None for card in current_player.hand
+            self._encode_action(card): None for card in self.get_curr_player().hand
         }
 
     def _decode_action(self, action):
@@ -106,3 +80,12 @@ class CrewRLCardEnv(Env):
 
     def _is_done(self):
         return self.game_failed or all(len(player.missions) == 0 for player in self.players)
+    
+    def get_curr_player_id(self) -> int:
+        return self.game.current_player
+
+    def get_curr_player(self) -> CrewPlayer:
+        return self.players[self.game.current_player]
+
+    def get_state(self, player_id):
+        return self._extract_state()
