@@ -65,31 +65,6 @@ class CrewGame:
         for i in range(10):
             if not self._play_round(i):
                 break
-    
-    def step(self, action):
-        player: CrewPlayer = self.players[self.current_player]
-        card_to_play = action
-
-        if card_to_play not in player.hand:
-            raise ValueError("Invalid action: card not in hand")
-
-        player.hand.remove(card_to_play)
-        self.current_trick.append((player.player_id, card_to_play))
-
-        if len(self.current_trick) == 1:
-            self.leading_suit = card_to_play.suit
-
-        self.current_player = (self.current_player + 1) % 4
-
-        if len(self.current_trick) == 4:
-            result, _ = self._resolve_winner(len(self.tricks))
-            self.tricks.append(self.current_trick)
-            self.current_trick = []
-            self.leading_suit = None
-            if not result:
-                return True
-
-        return False
 
     def _play_round(self, round_number: int) -> bool:
         self.current_trick = []
@@ -134,13 +109,4 @@ class CrewGame:
         logging.info(f'Player {winning_player} won round {round_number}')
         self.current_player = winning_player
         return True, ""
-
-    def get_state(self, player_id: int) -> dict:
-        player: CrewPlayer = self.players[player_id]
-        return {
-            'hand': [card.to_tuple() for card in player.hand],
-            'missions': [card.to_tuple() for card in player.missions],
-            'signals': [(card.to_tuple(), signal.value) for card, signal in player.signals],
-        }
     
-    def get_num_players(self): return 4
