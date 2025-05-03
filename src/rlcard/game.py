@@ -1,7 +1,7 @@
 import numpy as np
 import logging
-from card import Communicate, CrewCard
-from players import CrewPlayer
+from utils.card import Communicate, CrewCard
+from players import CrewRLCardPlayer
 
 # Configure logging
 logging.basicConfig(
@@ -13,9 +13,10 @@ logging.basicConfig(
     ]
 )
 
+
 class CrewGame:
     def __init__(self):
-        self.players: list[CrewPlayer] = []
+        self.players: list[CrewRLCardPlayer] = []
         self.deck: list[CrewCard] = []
         self.tricks: list[list[tuple[int, CrewCard]]] = []
         self.missions: list[tuple[int, CrewCard]] = []
@@ -25,14 +26,20 @@ class CrewGame:
         self.current_player = None
         self.current_trick: list[tuple[int, CrewCard]] = []
         self.winner = None
+        self.game_failed = False
 
-    def init_game(self, players: list[CrewPlayer], no_missions: int, show_hands: bool = False):
+    def init_game(self, players: list[CrewRLCardPlayer], no_missions: int, show_hands: bool = False):
+        self.tricks = []
+        self.missions = []
+        self.current_trick = []
+        self.communication_log = []
         self.players = players
         self.show_hands = show_hands
         self.deck = self._initialize_deck()
         self._deal_cards()
         self.current_player = self._find_starting_player()
         self._assign_tasks(no_missions)
+        return self.get_state(self.current_player), self.current_player
 
     def _initialize_deck(self) -> list[CrewCard]:
         suits = ['B', 'G', 'Y', 'P']
@@ -57,39 +64,27 @@ class CrewGame:
             task_cards = [card for card in task_cards if card != chosen_task]
 
     def _find_starting_player(self) -> int:
-        starting_player = next((player.player_id for player in self.players if any(card.is_rocket and card.rank == 4 for card in player.hand)), 0)
+        starting_player = next((player.player_id for player in self.players if any(
+            card.is_rocket and card.rank == 4 for card in player.hand)), 0)
         logging.info(f'Player {starting_player} has the 4 Rocket')
         return starting_player
 
-    def play_game(self):
-        for i in range(10):
-            if not self._play_round(i):
-                break
+    def step(self, card: CrewCard) -> tuple[dict, int]:
+        player: CrewRLCardPlayer = self.players[self.current_player]
+        if card not in player.hand:
+            raise ValueError("Invalid action: card not in hand")
+        player.hand.remove(card)
+        self.current_trick.append((self.current_player, card))
+        if len(self.current_trick) == 1:
+            self.leading_suit = card.suit
 
-    def _play_round(self, round_number: int) -> bool:
-        self.current_trick = []
-        self.leading_suit = None
-        logging.info(f'Starting round {round_number}')
-        if self.show_hands:
-            [player.show_hand_and_task() for player in self.players]
-        logging.info("Communication log: %s", [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log])
-        logging.info("Missions: %s", [(mission[0], str(mission[1])) for mission in self.missions])
-        for _ in range(4):
-            player: CrewPlayer = self.players[self.current_player]
-            if not player.has_communicated:
-                communicate = player.communicate()
-                logging.info(f'Player {player.player_id} communicated {communicate[1][0]} {communicate[1][1]}')
-                self.communication_log.append(communicate)
-            card_played = player.play_card(self.current_trick)
-            logging.info(f'Player {player.player_id} played {card_played.suit} {card_played.rank}')
-            self.leading_suit = self.leading_suit or card_played.suit
-            self.current_trick.append((player.player_id, card_played))
-            self.current_player = (self.current_player + 1) % 4
-        round_result, failure_message = self._resolve_winner(round_number)
-        [player.update_possible_communications() for player in self.players if not player.has_communicated]
-        return round_result
+        self.current_player = (self.current_player + 1) % 4
 
-    def _resolve_winner(self, round_number: int) -> tuple[bool, str]:
+        if len(self.current_trick) == 4:
+            self._resolve_winner(len(self.tricks))
+        return self.get_state(self.current_player), self.current_player
+
+    def _resolve_winner(self, round_number: int):
         highest_card = None
         winning_player = None
         for player_id, card in self.current_trick:
@@ -105,8 +100,25 @@ class CrewGame:
                 else:
                     failure_message = f'Player {winning_player} took {mission}, but it should have been Player {owner}.'
                     logging.error(failure_message)
-                    return False, failure_message
+                    self.game_failed = True
+                    return
         logging.info(f'Player {winning_player} won round {round_number}')
         self.current_player = winning_player
-        return True, ""
+        self.tricks.append(self.current_trick)
+        self.current_trick = []
+        self.leading_suit = None
+
+    def get_state(self, player_id: int) -> dict:
+        player: CrewRLCardPlayer = self.players[player_id]
+        return {
+            'hand': player.hand,
+            'missions': player.missions,
+            'signals': player.signals,
+        }
     
+    def is_over(self) -> bool:
+        return self.game_failed or all(len(player.missions) == 0 for player in self.players)
+
+    def get_num_players(self): return 4
+
+    def get_num_actions(self): return 40

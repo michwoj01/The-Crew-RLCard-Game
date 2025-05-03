@@ -1,6 +1,8 @@
-from game import CrewGame
-from players import CrewPlayer
+from cli.game import CrewGame
+from cli.players import CrewPlayer
 import asyncio
+
+
 game = CrewGame()
 asyncio.run(game.init_game(
     players=[

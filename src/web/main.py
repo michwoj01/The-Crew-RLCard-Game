@@ -1,8 +1,8 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
-from human_game import HumanCrewGame
-from players import CrewPlayer
-from human_players import HumanCrewPlayer, IntelligentCrewPlayer
+from web.game import HumanCrewGame
+from web.players import CrewPlayer
+from web.players import HumanCrewPlayer, IntelligentCrewPlayer
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

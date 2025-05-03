@@ -1,24 +1,16 @@
 import numpy as np
-from card import Communicate, CrewCard, Signal
+from utils.card import CrewCard, Communicate, Signal
+from rlcard.agents import RandomAgent
 
+class CrewRLCardPlayer(RandomAgent):
 
-class CrewPlayer:
-    def __init__(self, player_id: int):
+    def __init__(self, num_actions, player_id: int):
+        super().__init__(num_actions)
         self.player_id: int = player_id
         self.has_communicated: bool = False
         self.hand: list[CrewCard] = []
         self.missions: list[CrewCard] = []
         self.signals: list[Communicate] = []
-
-    def play_card(self, current_round) -> CrewCard:
-        if not current_round:
-            return np.random.choice(self.hand)
-        leading_suit = current_round[0][1].suit
-        legal_actions = [card for card in self.hand if card.suit == leading_suit]
-        if legal_actions:
-            return max(legal_actions, key=lambda c: c.rank)
-        else:
-            return max(self.hand, key=lambda c: c.rank)
 
     def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
         return np.random.choice(tasks)
@@ -29,7 +21,7 @@ class CrewPlayer:
         signal: Communicate = self.signals[0]
         self.has_communicated = True
         return (self.player_id, signal)
-    
+
     def complete_mission(self, card: CrewCard):
         if card in self.missions:
             self.missions.remove(card)
@@ -54,20 +46,6 @@ class CrewPlayer:
                     (min(cards_of_suit, key=lambda c: c.rank), Signal.LOWEST))
                 self.signals.append(
                     (max(cards_of_suit, key=lambda c: c.rank), Signal.HIGHEST))
-                
-class RLCardCrewPlayer(CrewPlayer):
-    def __init__(self, player_id, rlcard_agent):
-        super().__init__(player_id)
-        self.agent = rlcard_agent
-
-    def play_card(self, current_round):
-        state = {
-            'obs': np.array(self._encode_hand()),  # replicate what env returns
-            'legal_actions': {self._encode_action(c): None for c in self.hand}
-        }
-        action = self.agent.step(state)
-        card = self._decode_action(action)
-        return card
 
     def _encode_action(self, card):
         suit_index = ['B', 'G', 'Y', 'P', 'R'].index(card.suit)

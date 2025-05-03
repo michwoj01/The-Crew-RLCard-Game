@@ -1,8 +1,7 @@
 import numpy as np
 import logging
-from card import Communicate, CrewCard
-from players import CrewPlayer
-from human_players import IntelligentCrewPlayer, HumanCrewPlayer
+from utils.card import Communicate, CrewCard
+from web.players import IntelligentCrewPlayer, HumanCrewPlayer, CrewPlayer
 
 # Configure logging
 logging.basicConfig(
@@ -13,6 +12,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+
 
 class HumanCrewGame:
     def __init__(self):
@@ -62,7 +62,8 @@ class HumanCrewGame:
             task_cards = [card for card in task_cards if card != chosen_task]
 
     def _find_starting_player(self) -> int:
-        starting_player = next((player.player_id for player in self.players if any(card.is_rocket and card.rank == 4 for card in player.hand)), 0)
+        starting_player = next((player.player_id for player in self.players if any(
+            card.is_rocket and card.rank == 4 for card in player.hand)), 0)
         logging.info(f'Player {starting_player} has the 4 Rocket')
         return starting_player
 
@@ -80,8 +81,10 @@ class HumanCrewGame:
         logging.info(f'Starting round {round_number}')
         if self.show_hands:
             [player.show_hand_and_task() for player in self.players]
-        logging.info("Communication log: %s", [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log])
-        logging.info("Missions: %s", [(mission[0], str(mission[1])) for mission in self.missions])
+        logging.info("Communication log: %s", [
+                     (log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log])
+        logging.info("Missions: %s", [(mission[0], str(
+            mission[1])) for mission in self.missions])
         self.current_player = self.starting_player
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
@@ -92,7 +95,8 @@ class HumanCrewGame:
                     communicate = await player.communicate()
                 else:
                     communicate = player.communicate()
-                logging.info(f'Player {player.player_id} communicated {communicate[1][0]} {communicate[1][1]}')
+                logging.info(
+                    f'Player {player.player_id} communicated {communicate[1][0]} {communicate[1][1]}')
                 self.communication_log.append(communicate)
             if isinstance(player, HumanCrewPlayer):
                 await self._send_human_player_state(round_number)
@@ -102,7 +106,8 @@ class HumanCrewGame:
                 card_played = player.play_card(self.current_trick)
             else:
                 card_played = player.play_card(self.current_trick)
-            logging.info(f'Player {player.player_id} played {card_played.suit} {card_played.rank}')
+            logging.info(
+                f'Player {player.player_id} played {card_played.suit} {card_played.rank}')
             self.leading_suit = self.leading_suit or card_played.suit
             self.current_trick.append((player.player_id, card_played))
             self.current_player = (self.current_player + 1) % 4
@@ -110,7 +115,8 @@ class HumanCrewGame:
         if not round_result and isinstance(self.players[0], HumanCrewPlayer):
             await self._send_human_player_game_lost(failure_message)
             return False
-        [player.update_possible_communications() for player in self.players if not player.has_communicated]
+        [player.update_possible_communications()
+         for player in self.players if not player.has_communicated]
         return round_result
 
     def _resolve_winner(self, round_number: int) -> tuple[bool, str]:
