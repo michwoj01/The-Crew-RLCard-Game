@@ -1,45 +1,48 @@
-# Action_ids:
-#       0 to 39 -> play_card_action_id
-#       40 to 159 -> signal_action_id (40 cards * 3 signals: only, lowest, highest)
+from card import CrewCard, Signal
 
-class ActionEvent(object):  # Interface
+
+class ActionEvent(object):
 
     first_play_card_action_id = 0
     first_play_signal_action_id = 40
-    num_signals = 3  # only, lowest, highest
+    num_signals = 3
     max_signal_uses = 1
 
     def __str__(self):
-        signals = ["only", "lowest", "highest"]
-        return f"{self.card} ({signals[self.signal_id]})"
+        return f"{self.card} ({self.signal})"
 
     def __repr__(self):
         return self.__str__()
 
-
-    def __init__(self, action_id, card=None, signal_id=None):
+    def __init__(self, action_id: int, card: CrewCard, signal: Signal | None):
         self.action_id = action_id
         self.card = card
-        self.signal_id = signal_id
+        self.signal = signal
 
     @staticmethod
-    def is_play_card_action(action_id):
+    def get_num_actions():
+        return 160
+
+    @staticmethod
+    def is_play_card_action(action_id: int):
         return ActionEvent.first_play_card_action_id <= action_id < ActionEvent.first_play_signal_action_id
 
     @staticmethod
-    def is_signal_card_action(action_id):
+    def is_signal_card_action(action_id: int):
         return action_id >= ActionEvent.first_play_signal_action_id
 
     @staticmethod
-    def get_action_id_for_play_card(card):
-        return ActionEvent.first_play_card_action_id + card
+    def get_action_id_for_play_card(card: CrewCard):
+        action_id = ActionEvent.first_play_card_action_id + card.card_id
+        return ActionEvent(action_id, card, None)
 
     @staticmethod
-    def get_action_id_for_signal_card(card, signal_id):
-        return ActionEvent.first_play_signal_action_id + card * ActionEvent.num_signals + signal_id
+    def get_action_id_for_signal_card(card: CrewCard, signal: Signal):
+        action_id = ActionEvent.first_play_signal_action_id + card.card_id * ActionEvent.num_signals + signal.value
+        return ActionEvent(action_id, card, signal)
 
     @staticmethod
-    def decode_action_id(action_id):
+    def decode_action_id(action_id: int):
         if ActionEvent.is_play_card_action(action_id):
             card = action_id - ActionEvent.first_play_card_action_id
             return card, None

@@ -1,104 +1,262 @@
 import numpy as np
-from rlcard.envs import Env
-from utils.card import CrewCard, Communicate, Signal
+from collections import OrderedDict
 from game import CrewGame
+from rlcard.envs import Env
 
-class CrewRLCardEnv(Env):
+class CrewEnv(Env):
+    ''' Bridge Environment
+    '''
     def __init__(self, config):
-        self.game = CrewGame()
         self.name = 'crew'
-        super().__init__(config)
+        self.game = CrewGame()
+        super().__init__(config=config)
+        self.bridgePayoffDelegate = DefaultBridgePayoffDelegate()
+        self.bridgeStateExtractor = DefaultBridgeStateExtractor()
+        state_shape_size = self.bridgeStateExtractor.get_state_shape_size()
+        self.state_shape = [[1, state_shape_size] for _ in range(self.num_players)]
+        self.action_shape = [None for _ in range(self.num_players)]
 
-    def reset(self) -> tuple[np.ndarray, int]:
-        '''
-        Returns the beggining state of the first player and his ID
-        '''
-        state, player = self.game.init_game(self.agents, no_missions=4)
-        return self._extract_state(state), player
+    def get_payoffs(self):
+        return self.bridgePayoffDelegate.get_payoffs(game=self.game)
 
-    def step(self, action, raw_action=False) -> tuple[dict, int]:
-        '''
-        Takes action taken by the current player
-        Returns the next state and the ID of the next player
-        '''
-        card = self._decode_action(action)
-        self.action_recorder.append((self.get_player_id(), card))
-        next_state, next_player = self.game.step(card)
-        return self._extract_state(next_state), next_player
+    def get_perfect_information(self):
+        return self.game.round.get_perfect_information()
 
-    def step_back(self) -> tuple[dict, int]:
+    def _extract_state(self, state):  # wch: don't use state 211126
+        ''' Extract useful information from state for RL.
+
+        Args:
+            state (dict): The raw state
+
+        Returns:
+            (numpy.array): The extracted state
+        '''
+        return self.bridgeStateExtractor.extract_state(game=self.game)
+
+    def _decode_action(self, action_id):
+        ''' Decode Action id to the action in the game.
+
+        Args:
+            action_id (int): The id of the action
+
+        Returns:
+            (ActionEvent): The action that will be passed to the game engine.
+        '''
+        return ActionEvent.from_action_id(action_id=action_id)
+
+    def _get_legal_actions(self):
+        ''' Get all legal actions for current state.
+
+        Returns:
+            (list): A list of legal actions' id.
+        '''
+        raise NotImplementedError  # wch: not needed
+
+
+class BridgePayoffDelegate(object):
+
+    def get_payoffs(self, game: BridgeGame):
+        ''' Get the payoffs of players. Must be implemented in the child class.
+
+        Returns:
+            (list): A list of payoffs for each player.
+
+        Note: Must be implemented in the child class.
+        '''
         raise NotImplementedError
 
-    def is_over(self) -> bool:
-        return self.game.game_failed or all(len(player.missions) == 0 for player in self.agents)
 
-    def get_player_id(self) -> int:
-        return self.game.current_player
+class DefaultBridgePayoffDelegate(BridgePayoffDelegate):
 
-    def get_payoffs(self) -> list[float]:
-        return [1 if not player.missions else 0 for player in self.agents]
+    def __init__(self):
+        self.make_bid_bonus = 2
 
-    def get_perfect_information(self) -> dict:
-        return {
-            'hand': [[c.to_tuple() for c in player.hand] for player in self.agents],
-            'missions': [[c.to_tuple() for c in player.missions] for player in self.agents],
-            'signals': [[(c.to_tuple(), signal.value) for c, signal in player.signals] for player in self.agents],
-            'tricks': [[(pid, c.to_tuple()) for pid, c in trick] for trick in self.game.tricks],
-            'current_player': self.get_player_id(),
-            'current_trick': [(pid, c.to_tuple()) for pid, c in self.game.current_trick],
-        }
+    def get_payoffs(self, game: BridgeGame):
+        ''' Get the payoffs of players.
 
-    def _extract_state(self, state: dict) -> dict:
-        obs = self._encode_cards(state['hand'])
-        raw_legal_actions = self._get_legal_actions(state['hand'])
-        legal_action_ids = [self._encode_action(card) for card in raw_legal_actions]
-        legal_actions = {action_id: 1.0 for action_id in legal_action_ids}
-        return {
-            'obs': np.array(obs, dtype=np.int32),
-            'legal_actions': legal_actions,
-            'raw_legal_actions': legal_action_ids
-        }
-    
-    def _get_legal_actions(self, hand: list[CrewCard]) -> list[CrewCard]:
-        if not self.game.current_trick:
-            legal_actions = hand
+        Returns:
+            (list): A list of payoffs for each player.
+        '''
+        contract_bid_move = game.round.contract_bid_move
+        if contract_bid_move:
+            declarer = contract_bid_move.player
+            bid_trick_count = contract_bid_move.action.bid_amount + 6
+            won_trick_counts = game.round.won_trick_counts
+            declarer_won_trick_count = won_trick_counts[declarer.player_id % 2]
+            defender_won_trick_count = won_trick_counts[(declarer.player_id + 1) % 2]
+            declarer_payoff = bid_trick_count + self.make_bid_bonus if bid_trick_count <= declarer_won_trick_count else declarer_won_trick_count - bid_trick_count
+            defender_payoff = defender_won_trick_count
+            payoffs = []
+            for player_id in range(4):
+                payoff = declarer_payoff if player_id % 2 == declarer.player_id % 2 else defender_payoff
+                payoffs.append(payoff)
         else:
-            leading_suit = self.game.current_trick[0][1].suit
-            legal_actions = [
-                card for card in hand if card.suit == leading_suit]
-            if not legal_actions:
-                legal_actions = hand
-        return legal_actions
-    def _decode_action(self, action: int):
-        suit = ['B', 'G', 'Y', 'P', 'R'][action // 9]
-        rank = action % 9 + 1
-        return CrewCard(suit, rank)
+            payoffs = [0, 0, 0, 0]
+        return np.array(payoffs)
 
-    def _decode_signal(self, action: int) -> Communicate:
-        card_code = action // 10
-        signal_code = action % 10
-        suit_index = card_code // 9
-        rank = (card_code % 9) + 1
-        card = CrewCard(['B', 'G', 'Y', 'P', 'R'][suit_index], rank)
-        signal = Signal(signal_code)
-        return card, signal
 
-    # addtional methods
+class BridgeStateExtractor(object):  # interface
 
-    def _encode_action(self, card: CrewCard) -> int:
-        suit_index = ['B', 'G', 'Y', 'P', 'R'].index(card.suit)
-        return suit_index * 9 + (card.rank - 1)
+    def get_state_shape_size(self) -> int:
+        raise NotImplementedError
 
-    def _encode_cards(self, hand: list[CrewCard]) -> list[int]:
-        encoded = [0] * 40
-        for card in hand:
-            idx = self._encode_action(card)
-            encoded[idx] = 1
-        return encoded
+    def extract_state(self, game: BridgeGame):
+        ''' Extract useful information from state for RL. Must be implemented in the child class.
 
-    def _encode_signals(self, hand: list[Communicate]) -> list[int]:
-        encoded = [0] * 443
-        for card, signal in hand:
-            idx = self._encode_action(card) * 10 + signal.value
-            encoded[idx] = 1
-        return encoded
+        Args:
+            game (BridgeGame): The game
+
+        Returns:
+            (numpy.array): The extracted state
+        '''
+        raise NotImplementedError
+
+    @staticmethod
+    def get_legal_actions(game: BridgeGame):
+        ''' Get all legal actions for current state.
+
+        Returns:
+            (OrderedDict): A OrderedDict of legal actions' id.
+        '''
+        legal_actions = game.judger.get_legal_actions()
+        legal_actions_ids = {action_event.action_id: None for action_event in legal_actions}
+        return OrderedDict(legal_actions_ids)
+
+
+class DefaultBridgeStateExtractor(BridgeStateExtractor):
+
+    def __init__(self):
+        super().__init__()
+        self.max_bidding_rep_index = 40  # Note: max of 40 calls
+        self.last_bid_rep_size = 1 + 35 + 3  # no_bid, bid, pass, dbl, rdbl
+
+    def get_state_shape_size(self) -> int:
+        state_shape_size = 0
+        state_shape_size += 4 * 52  # hands_rep_size
+        state_shape_size += 4 * 52  # trick_rep_size
+        state_shape_size += 52  # hidden_cards_rep_size
+        state_shape_size += 4  # vul_rep_size
+        state_shape_size += 4  # dealer_rep_size
+        state_shape_size += 4  # current_player_rep_size
+        state_shape_size += 1  # is_bidding_rep_size
+        state_shape_size += self.max_bidding_rep_index  # bidding_rep_size
+        state_shape_size += self.last_bid_rep_size  # last_bid_rep_size
+        state_shape_size += 8  # bid_amount_rep_size
+        state_shape_size += 5  # trump_suit_rep_size
+        return state_shape_size
+
+    def extract_state(self, game: BridgeGame):
+        ''' Extract useful information from state for RL.
+
+        Args:
+            game (BridgeGame): The game
+
+        Returns:
+            (numpy.array): The extracted state
+        '''
+        extracted_state = {}
+        legal_actions: OrderedDict = self.get_legal_actions(game=game)
+        raw_legal_actions = list(legal_actions.keys())
+        current_player = game.round.get_current_player()
+        current_player_id = current_player.player_id
+
+        # construct hands_rep of hands of players
+        hands_rep = [np.zeros(52, dtype=int) for _ in range(4)]
+        if not game.is_over():
+            for card in game.round.players[current_player_id].hand:
+                hands_rep[current_player_id][card.card_id] = 1
+            if game.round.is_bidding_over():
+                dummy = game.round.get_dummy()
+                other_known_player = dummy if dummy.player_id != current_player_id else game.round.get_declarer()
+                for card in other_known_player.hand:
+                    hands_rep[other_known_player.player_id][card.card_id] = 1
+
+        # construct trick_pile_rep
+        trick_pile_rep = [np.zeros(52, dtype=int) for _ in range(4)]
+        if game.round.is_bidding_over() and not game.is_over():
+            trick_moves = game.round.get_trick_moves()
+            for move in trick_moves:
+                player = move.player
+                card = move.card
+                trick_pile_rep[player.player_id][card.card_id] = 1
+
+        # construct hidden_card_rep (during trick taking phase)
+        hidden_cards_rep = np.zeros(52, dtype=int)
+        if not game.is_over():
+            if game.round.is_bidding_over():
+                declarer = game.round.get_declarer()
+                if current_player_id % 2 == declarer.player_id % 2:
+                    hidden_player_ids = [(current_player_id + 1) % 4, (current_player_id + 3) % 4]
+                else:
+                    hidden_player_ids = [declarer.player_id, (current_player_id + 2) % 4]
+                for hidden_player_id in hidden_player_ids:
+                    for card in game.round.players[hidden_player_id].hand:
+                        hidden_cards_rep[card.card_id] = 1
+            else:
+                for player in game.round.players:
+                    if player.player_id != current_player_id:
+                        for card in player.hand:
+                            hidden_cards_rep[card.card_id] = 1
+
+        # construct vul_rep
+        vul_rep = np.array(game.round.tray.vul, dtype=int)
+
+        # construct dealer_rep
+        dealer_rep = np.zeros(4, dtype=int)
+        dealer_rep[game.round.tray.dealer_id] = 1
+
+        # construct current_player_rep
+        current_player_rep = np.zeros(4, dtype=int)
+        current_player_rep[current_player_id] = 1
+
+        # construct is_bidding_rep
+        is_bidding_rep = np.array([1] if game.round.is_bidding_over() else [0])
+
+        # construct bidding_rep
+        bidding_rep = np.zeros(self.max_bidding_rep_index, dtype=int)
+        bidding_rep_index = game.round.dealer_id  # no_bid_action_ids allocated at start so that north always 'starts' the bidding
+        for move in game.round.move_sheet:
+            if bidding_rep_index >= self.max_bidding_rep_index:
+                break
+            elif isinstance(move, PlayCardMove):
+                break
+            elif isinstance(move, CallMove):
+                bidding_rep[bidding_rep_index] = move.action.action_id
+                bidding_rep_index += 1
+
+        # last_bid_rep
+        last_bid_rep = np.zeros(self.last_bid_rep_size, dtype=int)
+        last_move = game.round.move_sheet[-1]
+        if isinstance(last_move, CallMove):
+            last_bid_rep[last_move.action.action_id - ActionEvent.no_bid_action_id] = 1
+
+        # bid_amount_rep and trump_suit_rep
+        bid_amount_rep = np.zeros(8, dtype=int)
+        trump_suit_rep = np.zeros(5, dtype=int)
+        if game.round.is_bidding_over() and not game.is_over() and game.round.play_card_count == 0:
+            contract_bid_move = game.round.contract_bid_move
+            if contract_bid_move:
+                bid_amount_rep[contract_bid_move.action.bid_amount] = 1
+                bid_suit = contract_bid_move.action.bid_suit
+                bid_suit_index = 4 if not bid_suit else BridgeCard.suits.index(bid_suit)
+                trump_suit_rep[bid_suit_index] = 1
+
+        rep = []
+        rep += hands_rep
+        rep += trick_pile_rep
+        rep.append(hidden_cards_rep)
+        rep.append(vul_rep)
+        rep.append(dealer_rep)
+        rep.append(current_player_rep)
+        rep.append(is_bidding_rep)
+        rep.append(bidding_rep)
+        rep.append(last_bid_rep)
+        rep.append(bid_amount_rep)
+        rep.append(trump_suit_rep)
+
+        obs = np.concatenate(rep)
+        extracted_state['obs'] = obs
+        extracted_state['legal_actions'] = legal_actions
+        extracted_state['raw_legal_actions'] = raw_legal_actions
+        extracted_state['raw_obs'] = obs
+        return extracted_state
