@@ -10,11 +10,42 @@ class CrewEnv(Env):
         self.name = 'crew'
         super().__init__(config)
 
+    def run(self, is_training=False):
+        self.reset()
+        trajectories = [[] for _ in range(len(self.agents))]
+        player_id = self.get_player_id()
+        state = self._extract_state(self.game.get_state(player_id))
+
+        while not self.is_over():
+            if is_training:
+                action = self.agents[player_id].step(state)
+            else:
+                action, _ = self.agents[player_id].eval_step(state)
+            
+            next_state, next_player_id = self.step(action)
+            reward = 0 
+            done = self.is_over()
+
+            trajectories[player_id].append((state, action, reward, next_state, done))
+
+            state = next_state
+            player_id = next_player_id
+
+        payoffs = self.get_payoffs()
+
+        for i in range(len(self.agents)):
+            if trajectories[i]:
+                last = trajectories[i][-1]
+                trajectories[i][-1] = (last[0], last[1], payoffs[i], last[3], True)
+
+        return trajectories, payoffs
+
+
     def reset(self) -> tuple[np.ndarray, int]:
         state, player = self.game.init_game(self.agents, no_missions=4)
         return self._extract_state(state), player
 
-    def step(self, action, raw_action=False) -> tuple[dict, int]:
+    def step(self, action: int, raw_action=False) -> tuple[dict, int]:
         card = self._decode_action(action)
         self.action_recorder.append((self.get_player_id(), card))
         next_state, next_player = self.game.step(card)
@@ -80,11 +111,11 @@ class CrewEnv(Env):
         return legal_actions
 
     def _decode_action(self, action: int) -> CrewCard:
-        if action < 40:  # Regular card action
+        if action < 40:
             suit = ['B', 'G', 'Y', 'P', 'R'][action // 9]
             rank = action % 9 + 1
             return CrewCard(suit, rank)
-        else:  # Signaling action
+        else:
             return self._decode_signal(action)
 
     def _decode_signal(self, action: int) -> Communicate:

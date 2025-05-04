@@ -5,7 +5,7 @@ from players import CrewPlayer
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.FATAL,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler("game.log"),
@@ -20,21 +20,23 @@ class CrewGame:
         self.deck: list[CrewCard] = []
         self.tricks: list[list[tuple[int, CrewCard]]] = []
         self.missions: list[tuple[int, CrewCard]] = []
-        self.show_hands = False
         self.communication_log: list[tuple[int, Communicate]] = []
         self.leading_suit = None
         self.current_player = None
         self.current_trick: list[tuple[int, CrewCard]] = []
-        self.winner = None
         self.game_failed = False
 
-    def init_game(self, players: list[CrewPlayer], no_missions: int, show_hands: bool = False):
+    def init_game(self, players: list[CrewPlayer], no_missions: int):
         self.tricks = []
         self.missions = []
         self.current_trick = []
         self.communication_log = []
         self.players = players
-        self.show_hands = show_hands
+        self.game_failed = False
+        for player in self.players:
+            player.hand = []
+            player.missions = []
+            player.has_communicated = False
         self.deck = self._initialize_deck()
         self._deal_cards()
         self.current_player = self._find_starting_player()
