@@ -7,7 +7,7 @@ class CrewPlayer:
         self.player_id: int = player_id
         self.has_communicated: bool = False
         self.hand: list[CrewCard] = []
-        self.missions: list[CrewCard] = []
+        self.tasks: list[CrewCard] = []
         self.signals: list[Communicate] = []
 
     def play_card(self, current_round) -> CrewCard:
@@ -31,9 +31,9 @@ class CrewPlayer:
         self.has_communicated = True
         return (self.player_id, signal)
 
-    def complete_mission(self, card: CrewCard):
-        if card in self.missions:
-            self.missions.remove(card)
+    def complete_task(self, card: CrewCard):
+        if card in self.tasks:
+            self.tasks.remove(card)
 
     def __str__(self):
         return f'Player {self.player_id}'
@@ -41,7 +41,7 @@ class CrewPlayer:
     def show_hand_and_task(self):
         print(f'Player {self.player_id} hand: ', [
             card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
-            card.suit[0] + str(card.rank) for card in self.missions])
+            card.suit[0] + str(card.rank) for card in self.tasks])
 
     def update_possible_communications(self):
         self.signals = []
@@ -89,9 +89,9 @@ class IntelligentCrewPlayer(CrewPlayer):
         leading_suit = current_round[0][1].suit if current_round else None
         mapped_all_tasks = [task[1] for task in self.state['tasks']]
         if leading_suit is None:
-            task_suit = self.missions[0].suit if self.missions else None
+            task_suit = self.tasks[0].suit if self.tasks else None
             possible_actions = [card for card in self.hand if card.suit == task_suit and (
-                card not in mapped_all_tasks or card in self.missions)]
+                card not in mapped_all_tasks or card in self.tasks)]
             if possible_actions:
                 chosen_card = max(possible_actions, key=lambda card: card.rank)
             else:
@@ -102,17 +102,17 @@ class IntelligentCrewPlayer(CrewPlayer):
             leading_player_id = current_round[0][0]
             leading_player_tasks = [
                 task[1] for task in self.state['tasks'] if task[0] == leading_player_id]
-            mission_card_for_leading_player = next(
+            task_card_for_leading_player = next(
                 (card for card in leading_player_tasks if card in self.hand), None)
-            if any(card in [played_card[1] for played_card in current_round] for card in self.missions):
+            if any(card in [played_card[1] for played_card in current_round] for card in self.tasks):
                 legal_actions_to_take = [card for card in self.hand if card.suit == leading_suit and (
-                    card not in mapped_all_tasks or card in self.missions)] or [card for card in self.hand if card.suit == leading_suit] or self.hand
+                    card not in mapped_all_tasks or card in self.tasks)] or [card for card in self.hand if card.suit == leading_suit] or self.hand
                 maybe_rocket = next(
                     (card for card in legal_actions_to_take if card.is_rocket), None)
                 chosen_card = maybe_rocket if maybe_rocket else max(legal_actions_to_take,
                                                                     key=lambda card: card.rank)
-            elif mission_card_for_leading_player and current_round[0][1].rank > mission_card_for_leading_player.rank:
-                chosen_card = mission_card_for_leading_player
+            elif task_card_for_leading_player and current_round[0][1].rank > task_card_for_leading_player.rank:
+                chosen_card = task_card_for_leading_player
             else:
                 legal_actions_to_give_away = [card for card in self.hand if card.suit == leading_suit and card not in mapped_all_tasks] or [
                     card for card in self.hand if not card.is_rocket and card not in mapped_all_tasks] or [card for card in self.hand if card.suit == leading_suit] or self.hand

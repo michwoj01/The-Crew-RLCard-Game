@@ -9,16 +9,16 @@ class CrewPlayer:
         self.np_random = np_random
         self.player_id: int = player_id
         self.hand: list[CrewCard] = []
-        self.missions: list[CrewCard] = []
+        self.tasks: list[CrewCard] = []
 
     def remove_card_from_hand(self, card: CrewCard):
         self.hand.remove(card)
 
-    def complete_mission(self, card: CrewCard):
-        if card in self.missions:
-            self.missions.remove(card)
+    def complete_task(self, card: CrewCard):
+        if card in self.tasks:
+            self.tasks.remove(card)
         else:
-            raise ValueError(f"Card {card} not in missions")
+            raise ValueError(f"Card {card} not in tasks")
 
     def __str__(self):
         return ['N', 'E', 'S', 'W'][self.player_id]

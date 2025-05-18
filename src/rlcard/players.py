@@ -9,14 +9,14 @@ class CrewPlayer:
         self.player_id: int = player_id
         self.has_communicated: bool = False
         self.hand: list[CrewCard] = []
-        self.missions: list[CrewCard] = []
+        self.tasks: list[CrewCard] = []
 
     def choose_task(self, tasks: list[CrewCard]) -> CrewCard:
         return np.random.choice(tasks)
 
-    def complete_mission(self, card: CrewCard):
-        if card in self.missions:
-            self.missions.remove(card)
+    def complete_task(self, card: CrewCard):
+        if card in self.tasks:
+            self.tasks.remove(card)
 
     def __str__(self):
         return f'Player {self.player_id}'

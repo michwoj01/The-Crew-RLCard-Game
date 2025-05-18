@@ -11,7 +11,7 @@ asyncio.run(game.init_game(
         CrewPlayer(2),
         CrewPlayer(3)
     ],
-    no_missions=4,
+    no_tasks=4,
     show_hands=True
 ))
 asyncio.run(game.play_game())

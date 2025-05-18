@@ -7,7 +7,7 @@ class CrewPlayer:
         self.player_id: int = player_id
         self.has_communicated: bool = False
         self.hand: list[CrewCard] = []
-        self.missions: list[CrewCard] = []
+        self.tasks: list[CrewCard] = []
         self.signals: list[Communicate] = []
 
     def play_card(self, current_round) -> CrewCard:
@@ -31,9 +31,9 @@ class CrewPlayer:
         self.has_communicated = True
         return (self.player_id, signal)
 
-    def complete_mission(self, card: CrewCard):
-        if card in self.missions:
-            self.missions.remove(card)
+    def complete_task(self, card: CrewCard):
+        if card in self.tasks:
+            self.tasks.remove(card)
 
     def __str__(self):
         return f'Player {self.player_id}'
@@ -41,7 +41,7 @@ class CrewPlayer:
     def show_hand_and_task(self):
         print(f'Player {self.player_id} hand: ', [
             card.suit[0] + str(card.rank) for card in self.hand], ' Tasks: ', [
-            card.suit[0] + str(card.rank) for card in self.missions])
+            card.suit[0] + str(card.rank) for card in self.tasks])
 
     def update_possible_communications(self):
         self.signals = []

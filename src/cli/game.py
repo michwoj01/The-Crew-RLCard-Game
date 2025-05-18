@@ -18,7 +18,7 @@ class CrewGame:
         self.players: list[CrewPlayer] = []
         self.deck: list[CrewCard] = []
         self.tricks: list[list[tuple[int, CrewCard]]] = []
-        self.missions: list[tuple[int, CrewCard]] = []
+        self.tasks: list[tuple[int, CrewCard]] = []
         self.show_hands = False
         self.communication_log: list[tuple[int, Communicate]] = []
         self.leading_suit = None
@@ -26,13 +26,13 @@ class CrewGame:
         self.current_trick: list[tuple[int, CrewCard]] = []
         self.winner = None
 
-    def init_game(self, players: list[CrewPlayer], no_missions: int, show_hands: bool = False):
+    def init_game(self, players: list[CrewPlayer], no_tasks: int, show_hands: bool = False):
         self.players = players
         self.show_hands = show_hands
         self.deck = self._initialize_deck()
         self._deal_cards()
         self.current_player = self._find_starting_player()
-        self._assign_tasks(no_missions)
+        self._assign_tasks(no_tasks)
 
     def _initialize_deck(self) -> list[CrewCard]:
         suits = ['B', 'G', 'Y', 'P']
@@ -52,8 +52,8 @@ class CrewGame:
             [card for card in self.deck if not card.is_rocket], no_of_tasks, replace=False)
         for i in [(self.current_player + j) % len(self.players) for j in range(no_of_tasks)]:
             chosen_task = self.players[i].choose_task(task_cards)
-            self.missions.append((i, chosen_task))
-            self.players[i].missions.append(chosen_task)
+            self.tasks.append((i, chosen_task))
+            self.players[i].tasks.append(chosen_task)
             task_cards = [card for card in task_cards if card != chosen_task]
 
     def _find_starting_player(self) -> int:
@@ -73,7 +73,7 @@ class CrewGame:
         if self.show_hands:
             [player.show_hand_and_task() for player in self.players]
         logging.info("Communication log: %s", [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log])
-        logging.info("Missions: %s", [(mission[0], str(mission[1])) for mission in self.missions])
+        logging.info("Missions: %s", [(task[0], str(task[1])) for task in self.tasks])
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
             if not player.has_communicated:
@@ -98,12 +98,12 @@ class CrewGame:
                 highest_card = card
                 winning_player = player_id
         played_cards = [card for _, card in self.current_trick]
-        for owner, mission in self.missions:
-            if mission in played_cards:
+        for owner, tasks in self.tasks:
+            if tasks in played_cards:
                 if owner == winning_player:
-                    self.players[winning_player].complete_mission(mission)
+                    self.players[winning_player].complete_task(tasks)
                 else:
-                    failure_message = f'Player {winning_player} took {mission}, but it should have been Player {owner}.'
+                    failure_message = f'Player {winning_player} took {tasks}, but it should have been Player {owner}.'
                     logging.error(failure_message)
                     return False, failure_message
         logging.info(f'Player {winning_player} won round {round_number}')

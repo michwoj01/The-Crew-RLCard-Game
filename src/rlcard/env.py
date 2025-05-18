@@ -2,7 +2,7 @@ import numpy as np
 from rlcard.envs import Env
 from utils.card import CrewCard, Communicate, Signal
 from game import CrewGame
-
+from utils.syntax_sugar import overrides
 
 class CrewEnv(Env):
     def __init__(self, config):
@@ -10,63 +10,31 @@ class CrewEnv(Env):
         self.name = 'crew'
         super().__init__(config)
 
-    def run(self, is_training=False):
-        self.reset()
-        trajectories = [[] for _ in range(len(self.agents))]
-        player_id = self.get_player_id()
-        state = self._extract_state(self.game.get_state(player_id))
-
-        while not self.is_over():
-            if is_training:
-                action = self.agents[player_id].step(state)
-            else:
-                action, _ = self.agents[player_id].eval_step(state)
-            
-            next_state, next_player_id = self.step(action)
-            reward = 0 
-            done = self.is_over()
-
-            trajectories[player_id].append((state, action, reward, next_state, done))
-
-            state = next_state
-            player_id = next_player_id
-
-        payoffs = self.get_payoffs()
-
-        for i in range(len(self.agents)):
-            if trajectories[i]:
-                last = trajectories[i][-1]
-                trajectories[i][-1] = (last[0], last[1], payoffs[i], last[3], True)
-
-        return trajectories, payoffs
-
-
-    def reset(self) -> tuple[np.ndarray, int]:
-        state, player = self.game.init_game(self.agents, no_missions=4)
+    @overrides(Env)
+    def reset(self):
+        state, player = self.game.init_game(self.agents, no_tasks=4)
+        self.action_recorder = []
         return self._extract_state(state), player
 
-    def step(self, action: int, raw_action=False) -> tuple[dict, int]:
-        card = self._decode_action(action)
-        self.action_recorder.append((self.get_player_id(), card))
-        next_state, next_player = self.game.step(card)
-        return self._extract_state(next_state), next_player
-
-    def step_back(self) -> tuple[dict, int]:
-        raise NotImplementedError
-
+    @overrides(Env)
     def is_over(self) -> bool:
-        return self.game.game_failed or all(len(player.missions) == 0 for player in self.agents)
+        return self.game.is_over()
 
+    @overrides(Env)
     def get_player_id(self) -> int:
         return self.game.current_player
 
+    # check payoffs
+    @overrides(Env)
     def get_payoffs(self) -> list[float]:
-        return [1 if not player.missions else 0 for player in self.agents]
+        return [1 if not player.tasks else 0 for player in self.agents]
 
+# maybe to delete
+    @overrides(Env)
     def get_perfect_information(self) -> dict:
         return {
             'hand': [[c.to_tuple() for c in player.hand] for player in self.agents],
-            'missions': [[c.to_tuple() for c in player.missions] for player in self.agents],
+            'tasks': [[c.to_tuple() for c in player.tasks] for player in self.agents],
             'tricks': [[(pid, c.to_tuple()) for pid, c in trick] for trick in self.game.tricks],
             'current_player': self.get_player_id(),
             'current_trick': [(pid, c.to_tuple()) for pid, c in self.game.current_trick],
@@ -118,7 +86,7 @@ class CrewEnv(Env):
         else:
             return self._decode_signal(action)
 
-    def _decode_signal(self, action: int) -> Communicate:
+    def _decode_signal(self, action: int):
         card_code = action // 40
         signal_code = action % 40
         suit_index = card_code // 9

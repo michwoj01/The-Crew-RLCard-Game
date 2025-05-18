@@ -19,7 +19,7 @@ class HumanCrewGame:
         self.players: list[CrewPlayer] = []
         self.deck: list[CrewCard] = []
         self.tricks: list[list[tuple[int, CrewCard]]] = []
-        self.missions: list[tuple[int, CrewCard]] = []
+        self.tasks: list[tuple[int, CrewCard]] = []
         self.show_hands = False
         self.communication_log: list[tuple[int, Communicate]] = []
         self.starting_player = None
@@ -28,13 +28,13 @@ class HumanCrewGame:
         self.current_trick: list[tuple[int, CrewCard]] = []
         self.winner = None
 
-    async def init_game(self, players: list[CrewPlayer], no_missions: int, show_hands: bool = False):
+    async def init_game(self, players: list[CrewPlayer], no_tasks: int, show_hands: bool = False):
         self.players = players
         self.show_hands = show_hands
         self.deck = self._initialize_deck()
         self._deal_cards()
         self.starting_player = self._find_starting_player()
-        await self._assign_tasks(no_missions)
+        await self._assign_tasks(no_tasks)
 
     def _initialize_deck(self) -> list[CrewCard]:
         suits = ['B', 'G', 'Y', 'P']
@@ -57,8 +57,8 @@ class HumanCrewGame:
         for i in [(self.starting_player + j) % len(self.players) for j in range(no_of_tasks)]:
             chosen_task = await self.players[i].choose_task(task_cards) if isinstance(self.players[i], HumanCrewPlayer) \
                 else self.players[i].choose_task(task_cards)
-            self.missions.append((i, chosen_task))
-            self.players[i].missions.append(chosen_task)
+            self.tasks.append((i, chosen_task))
+            self.players[i].tasks.append(chosen_task)
             task_cards = [card for card in task_cards if card != chosen_task]
 
     def _find_starting_player(self) -> int:
@@ -83,8 +83,8 @@ class HumanCrewGame:
             [player.show_hand_and_task() for player in self.players]
         logging.info("Communication log: %s", [
                      (log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log])
-        logging.info("Missions: %s", [(mission[0], str(
-            mission[1])) for mission in self.missions])
+        logging.info("Missions: %s", [(task[0], str(
+            task[1])) for task in self.tasks])
         self.current_player = self.starting_player
         for _ in range(4):
             player: CrewPlayer = self.players[self.current_player]
@@ -102,7 +102,7 @@ class HumanCrewGame:
                 await self._send_human_player_state(round_number)
                 card_played = await player.play_card(self.current_trick)
             elif isinstance(player, IntelligentCrewPlayer):
-                player.update_state(self.missions)
+                player.update_state(self.tasks)
                 card_played = player.play_card(self.current_trick)
             else:
                 card_played = player.play_card(self.current_trick)
@@ -128,12 +128,12 @@ class HumanCrewGame:
                 highest_card = card
                 winning_player = player_id
         played_cards = [card for _, card in self.current_trick]
-        for owner, mission in self.missions:
-            if mission in played_cards:
+        for owner, task in self.tasks:
+            if task in played_cards:
                 if owner == winning_player:
-                    self.players[winning_player].complete_mission(mission)
+                    self.players[winning_player].complete_task(task)
                 else:
-                    failure_message = f'Player {winning_player} took {mission}, but it should have been Player {owner}.'
+                    failure_message = f'Player {winning_player} took {task}, but it should have been Player {owner}.'
                     logging.error(failure_message)
                     return False, failure_message
         logging.info(f'Player {winning_player} won round {round_number}')
@@ -148,7 +148,7 @@ class HumanCrewGame:
                 "startingPlayer": self.starting_player,
                 "roundNumber": round_number,
                 "hand": [str(card) for card in player.hand],
-                "tasks": [(p.player_id, [str(task) for task in p.missions]) for p in self.players],
+                "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
                 "communications": [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log],
                 "playedCards": [],
             }
@@ -162,7 +162,7 @@ class HumanCrewGame:
                 "startingPlayer": self.starting_player,
                 "roundNumber": round_number,
                 "hand": [str(card) for card in player.hand],
-                "tasks": [(p.player_id, [str(task) for task in p.missions]) for p in self.players],
+                "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
                 "communications": [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log],
                 "playedCards": [(p_id, str(card)) for p_id, card in self.current_trick],
             }

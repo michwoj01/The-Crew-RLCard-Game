@@ -19,7 +19,7 @@ class Round:
         self.signals_used: List[bool] = [False] * num_players
 
     def is_over(self) -> bool:
-        return self.round_number >= 10 or all(len(player.missions) == 0 for player in self.players)
+        return self.round_number >= 10 or all(len(player.tasks) == 0 for player in self.players)
 
     def get_current_player(self) -> CrewPlayer:
         return self.players[self.current_player_id]
