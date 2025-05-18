@@ -58,7 +58,7 @@ class HumanCrewGame:
             chosen_task = await self.players[i].choose_task(task_cards) if isinstance(self.players[i], HumanCrewPlayer) \
                 else self.players[i].choose_task(task_cards)
             self.tasks.append((i, chosen_task))
-            self.players[i].tasks.append(chosen_task)
+            self.players[i].tasks_assigned.append(chosen_task)
             task_cards = [card for card in task_cards if card != chosen_task]
 
     def _find_starting_player(self) -> int:
@@ -148,7 +148,7 @@ class HumanCrewGame:
                 "startingPlayer": self.starting_player,
                 "roundNumber": round_number,
                 "hand": [str(card) for card in player.hand],
-                "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
+                "tasks": [(p.player_id, [str(task) for task in p.tasks_assigned]) for p in self.players],
                 "communications": [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log],
                 "playedCards": [],
             }
@@ -162,7 +162,7 @@ class HumanCrewGame:
                 "startingPlayer": self.starting_player,
                 "roundNumber": round_number,
                 "hand": [str(card) for card in player.hand],
-                "tasks": [(p.player_id, [str(task) for task in p.tasks]) for p in self.players],
+                "tasks": [(p.player_id, [str(task) for task in p.tasks_assigned]) for p in self.players],
                 "communications": [(log[0], f"{log[1][0]}-{log[1][1]}") for log in self.communication_log],
                 "playedCards": [(p_id, str(card)) for p_id, card in self.current_trick],
             }

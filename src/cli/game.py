@@ -53,7 +53,7 @@ class CrewGame:
         for i in [(self.current_player + j) % len(self.players) for j in range(no_of_tasks)]:
             chosen_task = self.players[i].choose_task(task_cards)
             self.tasks.append((i, chosen_task))
-            self.players[i].tasks.append(chosen_task)
+            self.players[i].tasks_assigned.append(chosen_task)
             task_cards = [card for card in task_cards if card != chosen_task]
 
     def _find_starting_player(self) -> int:

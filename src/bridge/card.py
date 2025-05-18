@@ -1,14 +1,4 @@
-from enum import Enum
 from rlcard.games.base import Card
-
-
-class Signal(Enum):
-    LOWEST = 1
-    HIGHEST = 2
-    ONLY = 3
-
-    def __str__(self):
-        return self.name[0]
 
 
 class CrewCard(Card):
@@ -21,11 +11,10 @@ class CrewCard(Card):
         rank_index = CrewCard.ranks.index(rank)
         self.card_id = 9 * suit_index + rank_index
 
-    
     @staticmethod
     def card(card_id: int):
         return _deck[card_id]
-    
+
     @staticmethod
     def get_deck():
         return _deck.copy()
@@ -37,7 +26,5 @@ class CrewCard(Card):
         return f'{self.suit}{self.rank}'
 
 
-_deck = [CrewCard(suit=suit, rank=rank) for suit in CrewCard.suits for rank in CrewCard.ranks] + \
+_deck = [CrewCard(suit=suit, rank=rank) for suit in CrewCard.suits[:4] for rank in CrewCard.ranks] + \
         [CrewCard('R', rank) for rank in range(1, 5)]
-
-Communicate = tuple[CrewCard, Signal]

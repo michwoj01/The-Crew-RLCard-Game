@@ -27,14 +27,14 @@ class CrewEnv(Env):
     # check payoffs
     @overrides(Env)
     def get_payoffs(self) -> list[float]:
-        return [1 if not player.tasks else 0 for player in self.agents]
+        return [1 if not player.tasks_assigned else 0 for player in self.agents]
 
 # maybe to delete
     @overrides(Env)
     def get_perfect_information(self) -> dict:
         return {
             'hand': [[c.to_tuple() for c in player.hand] for player in self.agents],
-            'tasks': [[c.to_tuple() for c in player.tasks] for player in self.agents],
+            'tasks': [[c.to_tuple() for c in player.tasks_assigned] for player in self.agents],
             'tricks': [[(pid, c.to_tuple()) for pid, c in trick] for trick in self.game.tricks],
             'current_player': self.get_player_id(),
             'current_trick': [(pid, c.to_tuple()) for pid, c in self.game.current_trick],
