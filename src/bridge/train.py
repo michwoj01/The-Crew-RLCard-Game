@@ -90,7 +90,7 @@ def train(args):
                     tournament(
                         env,
                         args.num_eval_games,
-                    )[0]
+                    )
                 )
 
         # Get the paths
@@ -129,17 +129,17 @@ if __name__ == '__main__':
     parser.add_argument(
         '--num_episodes',
         type=int,
-        default=5000,
+        default=1000,
     )
     parser.add_argument(
         '--num_eval_games',
         type=int,
-        default=2000,
+        default=1000,
     )
     parser.add_argument(
         '--evaluate_every',
         type=int,
-        default=100,
+        default=200,
     )
     parser.add_argument(
         '--log_dir',

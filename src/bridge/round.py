@@ -83,7 +83,7 @@ class Round:
                     leading_card = trick_card
                     trick_winner = trick_player
             self.current_player_id = trick_winner.player_id
-            trick_winner.complete_task(cards=trick_moves)
+            trick_winner.complete_task(card_moves=trick_moves)
         else:
             self.current_player_id = (self.current_player_id + 1) % 4
 
