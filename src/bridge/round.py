@@ -1,26 +1,28 @@
 from typing import List
 
-from action_event import PlayCardAction
+from numpy.random import RandomState
+
+from action_event import PlayCardAction, ChooseTaskAction
 from card import CrewCard
 from dealer import Dealer
 from player import CrewPlayer
-from move import PlayCardMove, CrewMove, DealHandMove, DealTaskHandMove
+from move import PlayCardMove, CrewMove, DealHandMove, ChooseTaskMove
 
 
 class Round:
 
     @property
-    def round_phase(self):
-        if self.is_over():
+    def round_phase(self) -> str:
+        if len(self.dealer.tasks) > 0:
+            result = 'choosing tasks'
+        elif self.is_over():
             result = 'game over'
-        elif True:  # TODO
-            result = 'play card'
-        # else:
-        #     result = 'signal'
+        else:
+            result = 'playing card'
         return result
 
-    def __init__(self, num_players: int, np_random):
-        self.np_random = np_random
+    def __init__(self, num_players: int, np_random: RandomState):
+        self.np_random: RandomState = np_random
         dealer_id = 1
         self.dealer: Dealer = Dealer(self.np_random)
         self.players: List[CrewPlayer] = []
@@ -32,7 +34,7 @@ class Round:
         self.round_number: int = 0
         self.move_sheet: List[CrewMove] = []
         self.move_sheet.append(DealHandMove(dealer=self.players[dealer_id], shuffled_deck=self.dealer.shuffled_deck))
-        self.move_sheet.append(DealTaskHandMove(dealer=self.players[dealer_id], tasks=self.dealer.tasks_pile))
+        self.impossible_to_win: bool = False
 
     def is_over(self) -> bool:
         card_over = True
@@ -41,7 +43,7 @@ class Round:
             card_over = card_over and not player.hand
             task_over = task_over and not player.tasks_assigned
 
-        return card_over or task_over
+        return self.impossible_to_win or (len(self.dealer.tasks) == 0 and (card_over or task_over))
 
     def get_current_player(self) -> CrewPlayer:
         return self.players[self.current_player_id]
@@ -84,8 +86,22 @@ class Round:
                     trick_winner = trick_player
             self.current_player_id = trick_winner.player_id
             trick_winner.complete_task(card_moves=trick_moves)
+            self.check_tasks(trick_winner, [move.card for move in trick_moves])
         else:
             self.current_player_id = (self.current_player_id + 1) % 4
+
+    def choose_task(self, action: ChooseTaskAction):
+        current_player = self.players[self.current_player_id]
+        self.move_sheet.append(ChooseTaskMove(current_player, action))
+        task = action.task
+        self.dealer.assign_task(current_player, task)
+        self.current_player_id = (self.current_player_id + 1) % 4
+
+    def check_tasks(self, trick_winner: CrewPlayer, won_trick: [CrewCard]):
+        for player in self.players:
+            if any(item in won_trick for item in player.tasks_assigned) and player.player_id != trick_winner.player_id:
+                self.impossible_to_win = True
+                break
 
     def get_perfect_information(self):
         state = {}

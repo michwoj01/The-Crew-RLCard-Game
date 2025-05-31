@@ -1,13 +1,13 @@
 import numpy as np
 from judger import Judger
-from action_event import ActionEvent
+from action_event import ActionEvent, ChooseTaskAction
 from round import Round
 
 
 class CrewGame:
     def __init__(self):
         self.allow_step_back = False
-        self.np_random = np.random.RandomState()
+        self.np_random = np.random.RandomState(seed=42)
         self.judger: Judger = Judger(game=self)
         self.actions: list[ActionEvent] = []  # must reset in init_game
         self.round: Round or None = None  # must reset in init_game
@@ -21,13 +21,16 @@ class CrewGame:
         for player_id in range(4):
             player = self.round.players[player_id]
             self.round.dealer.deal_cards(player=player, num=10)
-            self.round.dealer.deal_tasks(player=player)
+        self.round.dealer.prepare_tasks()
         current_player_id = self.round.current_player_id
         state = self.get_state(player_id=current_player_id)
         return state, current_player_id
 
     def step(self, action: ActionEvent):
-        self.round.play_card(action=action)
+        if isinstance(action, ChooseTaskAction):
+            self.round.choose_task(action=action)
+        else:
+            self.round.play_card(action=action)
         self.actions.append(action)
         next_player_id = self.round.current_player_id
         next_state = self.get_state(player_id=next_player_id)

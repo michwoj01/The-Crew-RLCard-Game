@@ -1,6 +1,7 @@
 import os
 import argparse
 
+import numpy as np
 import torch
 
 import rlcard
@@ -87,9 +88,11 @@ def train(args):
             if episode % args.evaluate_every == 0:
                 logger.log_performance(
                     episode,
-                    tournament(
-                        env,
-                        args.num_eval_games,
+                    np.average(
+                        tournament(
+                            env,
+                            args.num_eval_games,
+                        )
                     )
                 )
 
@@ -129,7 +132,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--num_episodes',
         type=int,
-        default=1000,
+        default=3000,
     )
     parser.add_argument(
         '--num_eval_games',
@@ -139,7 +142,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--evaluate_every',
         type=int,
-        default=200,
+        default=100,
     )
     parser.add_argument(
         '--log_dir',

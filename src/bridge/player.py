@@ -15,6 +15,9 @@ class CrewPlayer:
     def remove_card_from_hand(self, card: CrewCard):
         self.hand.remove(card)
 
+    def assign_task(self, task: CrewCard):
+        self.tasks_assigned.append(task)
+
     def complete_task(self, card_moves: [CrewCard]):
         for card_move in card_moves:
             card = card_move.card

@@ -27,23 +27,10 @@ class DealHandMove(CrewMove):
         return f'{self.dealer} deal shuffled_deck=[{shuffled_deck_text}]'
 
 
-class DealTaskHandMove(CrewMove):
-
-    def __init__(self, dealer: CrewPlayer, tasks: [CrewCard]):
-        super().__init__()
-        self.dealer = dealer
-        self.tasks = tasks
-
-    def __str__(self):
-        shuffled_deck_text = " ".join([str(card) for card in self.tasks])
-        return f'{self.dealer} deal tasks=[{shuffled_deck_text}]'
-
-
 class PlayCardMove(PlayerMove):
 
     def __init__(self, player: CrewPlayer, action: PlayCardAction):
         super().__init__(player=player, action=action)
-        self.action = action
 
     @property
     def card(self):
@@ -51,3 +38,17 @@ class PlayCardMove(PlayerMove):
 
     def __str__(self):
         return f'{self.player} plays {self.action}'
+
+
+class ChooseTaskMove(PlayerMove):
+
+    def __init__(self, player: CrewPlayer, action: ChooseTaskAction):
+        super().__init__(player=player, action=action)
+        self.action = action
+
+    @property
+    def task(self):
+        return self.action.task
+
+    def __str__(self):
+        return f'{self.player} chooses {self.action}'

@@ -3,7 +3,8 @@ from card import CrewCard
 
 class ActionEvent(object):
     first_play_card_action_id = 0
-    first_play_signal_action_id = 40
+    first_choose_task_action_id = 40
+    first_signal_action_id = 76
 
     def __init__(self, action_id: int):
         self.action_id = action_id
@@ -16,12 +17,19 @@ class ActionEvent(object):
 
     @staticmethod
     def from_action_id(action_id: int):
-        card = CrewCard.card(card_id=action_id)
-        return PlayCardAction(card=card)
+        if action_id < ActionEvent.first_choose_task_action_id:
+            card = CrewCard.card(card_id=action_id)
+            return PlayCardAction(card=card)
+        elif action_id < ActionEvent.first_signal_action_id:
+            task = CrewCard.card(card_id=action_id - ActionEvent.first_choose_task_action_id)
+            return ChooseTaskAction(task=task)
+        else:
+            # TODO
+            return None
 
     @staticmethod
     def get_num_actions():
-        return 40
+        return 76
 
 
 class PlayCardAction(ActionEvent):
@@ -32,7 +40,21 @@ class PlayCardAction(ActionEvent):
         self.card: CrewCard = card
 
     def __str__(self):
-        return f"{self.card}"
+        return f"card - {self.card}"
 
     def __repr__(self):
-        return f"{self.card}"
+        return f"card - {self.card}"
+
+
+class ChooseTaskAction(ActionEvent):
+
+    def __init__(self, task: CrewCard):
+        choose_task_action_id = ActionEvent.first_choose_task_action_id + task.card_id
+        super().__init__(action_id=choose_task_action_id)
+        self.task: CrewCard = task
+
+    def __str__(self):
+        return f"task - {self.task}"
+
+    def __repr__(self):
+        return f"task - {self.task}"
