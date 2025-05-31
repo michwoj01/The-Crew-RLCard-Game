@@ -49,6 +49,7 @@ class CrewGame:
     def is_over(self) -> bool:
         return self.round.is_over()
 
+    # stub implementation, we use DefaultCrewStateExtractor
     def get_state(self, player_id: int):
         state = {'player_id': player_id, 'current_player_id': self.round.current_player_id,
                  'hand': self.round.players[player_id].hand}

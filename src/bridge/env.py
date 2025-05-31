@@ -14,7 +14,6 @@ class CrewEnv(Env):
         self.crewStateExtractor = DefaultCrewStateExtractor()
         state_shape_size = self.crewStateExtractor.get_state_shape_size()
         self.state_shape = [[1, state_shape_size] for _ in range(self.num_players)]
-        self.action_shape = [None for _ in range(self.num_players)]
 
     def get_payoffs(self):
         return self.crewPayoffDelegate.get_payoffs(game=self.game)
@@ -28,9 +27,6 @@ class CrewEnv(Env):
     def _decode_action(self, action_id):
         return ActionEvent.from_action_id(action_id=action_id)
 
-    def _get_legal_actions(self):
-        raise NotImplementedError  # wch: not needed
-
 
 class CrewPayoffDelegate(object):
 
@@ -41,7 +37,9 @@ class CrewPayoffDelegate(object):
 class DefaultCrewPayoffDelegate(CrewPayoffDelegate):
 
     def get_payoffs(self, game: CrewGame):
-        payoffs = [len(player.tasks_completed) for player in game.round.players]
+        x = sum([len(player.tasks_assigned) for player in game.round.players])
+        y = sum([len(player.tasks_completed) for player in game.round.players])
+        payoffs = [(y / (x + y)) if len(player.tasks_completed) == 0 else 1.2 * (y / (x + y)) for player in game.round.players]
         return np.array(payoffs)
 
 
