@@ -53,16 +53,14 @@ class Round:
 
     def get_trick_moves(self) -> List[PlayCardMove]:
         trick_moves: List[PlayCardMove] = []
-        if self.play_card_count > 0:
-            trick_pile_count = self.play_card_count % 4
-            if trick_pile_count == 0:
-                trick_pile_count = 4
-            for move in self.move_sheet[-trick_pile_count:]:
+        counter = self.play_card_count
+        if counter > 0:
+            for move in self.move_sheet[-counter:]:
                 if isinstance(move, PlayCardMove):
                     trick_moves.append(move)
-            if len(trick_moves) != trick_pile_count:
+            if len(trick_moves) != counter:
                 raise Exception(
-                    f'get_trick_moves: count of trick_moves={[str(move.card) for move in trick_moves]} does not equal {trick_pile_count}')
+                    f'get_trick_moves: count of trick_moves={[str(move.card) for move in trick_moves]} does not equal {counter}')
         return trick_moves
 
     def play_card(self, action: PlayCardAction):
@@ -91,6 +89,7 @@ class Round:
             trick_winner.complete_task(card_moves=trick_moves)
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
             self.signaling_phase = True
+            self.play_card_count = 0
         else:
             self.current_player_id = (self.current_player_id + 1) % 4
 

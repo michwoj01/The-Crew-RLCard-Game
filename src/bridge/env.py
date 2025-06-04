@@ -65,7 +65,7 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         state_shape_size += 4 * 40  # hands_rep_size
         state_shape_size += 4 * 40  # trick_rep_size
         state_shape_size += 40      # hidden_cards_rep_size
-        state_shape_size += 4 * 3 * 40 # signal_rep_size
+        state_shape_size += 4 * 120 # signal_rep_size
         state_shape_size += 4 * 36  # tasks_rep_size
         state_shape_size += 4  # current_player_rep_size
         return state_shape_size
@@ -121,6 +121,7 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         rep += hands_rep
         rep += trick_pile_rep
         rep += tasks_rep
+        rep += signals_rep
         rep.append(hidden_cards_rep)
         rep.append(current_player_rep)
 

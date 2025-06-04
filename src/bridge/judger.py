@@ -23,22 +23,23 @@ class Judger:
                     legal_actions.append(ChooseTaskAction(task=task))
             case 'signaling':
                 legal_actions.append(SkipSignalAction())
-                if self.game.round.players[current_player.player_id].can_signal():
-                    hand = self.game.round.players[current_player.player_id].hand
+                current_player = self.game.round.get_current_player()
+                if current_player.can_signal():
+                    hand = current_player.hand
                     suits = {card.suit for card in hand}
                     for suit in suits:
                         cards_of_suit = [card for card in hand if card.suit == suit]
                         if len(cards_of_suit) == 1:
-                            legal_actions.append(SignalAction(card=cards_of_suit[0], signal=SignalType.ONLY))
+                            legal_actions.append(SignalAction(card=cards_of_suit[0], signal_type=SignalType.ONLY))
                         else:
                             legal_actions.append(
-                                SignalAction(card=min(cards_of_suit, key=lambda c: c.rank), signal=SignalType.LOWEST))
+                                SignalAction(card=min(cards_of_suit, key=lambda c: c.rank), signal_type=SignalType.LOWEST))
                             legal_actions.append(
-                                SignalAction(card=max(cards_of_suit, key=lambda c: c.rank), signal=SignalType.HIGHEST))
+                                SignalAction(card=max(cards_of_suit, key=lambda c: c.rank), signal_type=SignalType.HIGHEST))
             case 'playing card':
                 current_player = self.game.round.get_current_player()
                 trick_moves = self.game.round.get_trick_moves()
-                hand = self.game.round.players[current_player.player_id].hand
+                hand = current_player.hand
                 legal_cards = hand
                 if trick_moves and len(trick_moves) < 4:
                     led_card: CrewCard = trick_moves[0].card

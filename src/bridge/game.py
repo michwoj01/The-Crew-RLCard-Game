@@ -1,6 +1,6 @@
 import numpy as np
 from judger import Judger
-from action_event import ActionEvent, ChooseTaskAction, SignalAction
+from action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
 from round import Round
 
 
@@ -29,7 +29,7 @@ class CrewGame:
     def step(self, action: ActionEvent):
         if isinstance(action, ChooseTaskAction):
             self.round.choose_task(action=action)
-        elif isinstance(action, SignalAction):
+        elif isinstance(action, SignalAction) or isinstance(action, SkipSignalAction):
             self.round.signal(action=action)
         else:
             self.round.play_card(action=action)

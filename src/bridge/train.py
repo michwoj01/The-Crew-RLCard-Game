@@ -35,37 +35,37 @@ def train(args):
 
     # Initialize the agent and use random agents as opponents
     for index in range(env.num_players):
-        # Determine the checkpoint path for this particular agent
-        filename = f'model_{index}.pth'
-        checkpoint_path = os.path.join(args.load_checkpoint_path, filename)
+        # # Determine the checkpoint path for this particular agent
+        # filename = f'model_{index}.pth'
+        # checkpoint_path = os.path.join(args.load_checkpoint_path, filename)
 
-        # Load the agent from the checkpoint if it exists
-        if os.path.exists(checkpoint_path):
-            print(f"Loading checkpoint for agent {index} from {checkpoint_path}")
-            if args.algorithm == 'dqn':
-                agent = DQNAgent.from_checkpoint(checkpoint=torch.load(checkpoint_path))
-            elif args.algorithm == 'nfsp':
-                agent = NFSPAgent.from_checkpoint(checkpoint=torch.load(checkpoint_path))
-        else:
-            if args.algorithm == 'dqn':
-                agent = DQNAgent(
-                    num_actions=env.num_actions,
-                    state_shape=env.state_shape[0],
-                    mlp_layers=[64, 64],
-                    device=device,
-                    save_path=args.log_dir,
-                    save_every=args.save_every
-                )
-            elif args.algorithm == 'nfsp':
-                agent = NFSPAgent(
-                    num_actions=env.num_actions,
-                    state_shape=env.state_shape[0],
-                    hidden_layers_sizes=[64, 64],
-                    q_mlp_layers=[64, 64],
-                    device=device,
-                    save_path=args.log_dir,
-                    save_every=args.save_every
-                )
+        # # Load the agent from the checkpoint if it exists
+        # if os.path.exists(checkpoint_path):
+        #     print(f"Loading checkpoint for agent {index} from {checkpoint_path}")
+        #     if args.algorithm == 'dqn':
+        #         agent = DQNAgent.from_checkpoint(checkpoint=torch.load(checkpoint_path))
+        #     elif args.algorithm == 'nfsp':
+        #         agent = NFSPAgent.from_checkpoint(checkpoint=torch.load(checkpoint_path))
+        # else:
+        if args.algorithm == 'dqn':
+            agent = DQNAgent(
+                num_actions=env.num_actions,
+                state_shape=env.state_shape[0],
+                mlp_layers=[64, 64],
+                device=device,
+                save_path=args.log_dir,
+                save_every=args.save_every
+            )
+        elif args.algorithm == 'nfsp':
+            agent = NFSPAgent(
+                num_actions=env.num_actions,
+                state_shape=env.state_shape[0],
+                hidden_layers_sizes=[64, 64],
+                q_mlp_layers=[64, 64],
+                device=device,
+                save_path=args.log_dir,
+                save_every=args.save_every
+            )
 
         agents.append(agent)
 
