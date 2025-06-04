@@ -1,6 +1,6 @@
 from typing import List
-from action_event import ActionEvent, PlayCardAction, ChooseTaskAction
-from card import CrewCard
+from action_event import ActionEvent, PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
+from card import CrewCard, SignalType
 
 from typing import TYPE_CHECKING
 
@@ -21,6 +21,20 @@ class Judger:
             case 'choosing tasks':
                 for task in self.game.round.dealer.tasks:
                     legal_actions.append(ChooseTaskAction(task=task))
+            case 'signaling':
+                legal_actions.append(SkipSignalAction())
+                if self.game.round.players[current_player.player_id].can_signal():
+                    hand = self.game.round.players[current_player.player_id].hand
+                    suits = {card.suit for card in hand}
+                    for suit in suits:
+                        cards_of_suit = [card for card in hand if card.suit == suit]
+                        if len(cards_of_suit) == 1:
+                            legal_actions.append(SignalAction(card=cards_of_suit[0], signal=SignalType.ONLY))
+                        else:
+                            legal_actions.append(
+                                SignalAction(card=min(cards_of_suit, key=lambda c: c.rank), signal=SignalType.LOWEST))
+                            legal_actions.append(
+                                SignalAction(card=max(cards_of_suit, key=lambda c: c.rank), signal=SignalType.HIGHEST))
             case 'playing card':
                 current_player = self.game.round.get_current_player()
                 trick_moves = self.game.round.get_trick_moves()

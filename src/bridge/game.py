@@ -1,6 +1,6 @@
 import numpy as np
 from judger import Judger
-from action_event import ActionEvent, ChooseTaskAction
+from action_event import ActionEvent, ChooseTaskAction, SignalAction
 from round import Round
 
 
@@ -10,7 +10,7 @@ class CrewGame:
         self.np_random = np.random.RandomState(seed=42)
         self.judger: Judger = Judger(game=self)
         self.actions: list[ActionEvent] = []  # must reset in init_game
-        self.round: Round or None = None  # must reset in init_game
+        self.round: Round = None  # must reset in init_game
         self.num_players: int = 4
 
     def init_game(self):
@@ -29,6 +29,8 @@ class CrewGame:
     def step(self, action: ActionEvent):
         if isinstance(action, ChooseTaskAction):
             self.round.choose_task(action=action)
+        elif isinstance(action, SignalAction):
+            self.round.signal(action=action)
         else:
             self.round.play_card(action=action)
         self.actions.append(action)
