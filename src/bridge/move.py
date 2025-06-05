@@ -17,13 +17,14 @@ class PlayerMove(CrewMove):  # Interface
 
 class DealHandMove(CrewMove):
 
-    def __init__(self, dealer: CrewPlayer, shuffled_deck: [CrewCard]):
+    def __init__(self, dealer: CrewPlayer, shuffled_deck: list[CrewCard]):
         super().__init__()
         self.dealer = dealer
         self.shuffled_deck = shuffled_deck
 
     def __str__(self):
-        shuffled_deck_text = " ".join([str(card) for card in self.shuffled_deck])
+        shuffled_deck_text = " ".join([str(card)
+                                      for card in self.shuffled_deck])
         return f'{self.dealer} deal shuffled_deck=[{shuffled_deck_text}]'
 
 
@@ -38,6 +39,28 @@ class PlayCardMove(PlayerMove):
 
     def __str__(self):
         return f'{self.player} plays {self.action}'
+
+
+class SignalMove(PlayerMove):
+
+    def __init__(self, player: CrewPlayer, action: SignalAction):
+        super().__init__(player=player, action=action)
+
+    @property
+    def signal(self):
+        return (self.action.card, self.action.signal_type)
+
+    def __str__(self):
+        return f'{self.player} signals {self.action}'
+
+
+class SkipMove(PlayerMove):
+
+    def __init__(self, player: CrewPlayer, action: SkipSignalAction):
+        super().__init__(player=player, action=action)
+
+    def __str__(self):
+        return f'{self.player} skips signal'
 
 
 class ChooseTaskMove(PlayerMove):

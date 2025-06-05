@@ -1,6 +1,6 @@
 from typing import List
-from action_event import ActionEvent, PlayCardAction, ChooseTaskAction
-from card import CrewCard
+from action_event import ActionEvent, PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
+from card import CrewCard, SignalType
 
 from typing import TYPE_CHECKING
 
@@ -21,14 +21,32 @@ class Judger:
             case 'choosing tasks':
                 for task in self.game.round.dealer.tasks:
                     legal_actions.append(ChooseTaskAction(task=task))
+            case 'signaling':
+                legal_actions.append(SkipSignalAction())
+                current_player = self.game.round.get_current_player()
+                if current_player.can_signal():
+                    hand = current_player.hand
+                    suits = {card.suit for card in hand}
+                    for suit in suits:
+                        cards_of_suit = [
+                            card for card in hand if card.suit == suit]
+                        if len(cards_of_suit) == 1:
+                            legal_actions.append(SignalAction(
+                                card=cards_of_suit[0], signal_type=SignalType.ONLY))
+                        else:
+                            legal_actions.append(
+                                SignalAction(card=min(cards_of_suit, key=lambda c: c.rank), signal_type=SignalType.LOWEST))
+                            legal_actions.append(
+                                SignalAction(card=max(cards_of_suit, key=lambda c: c.rank), signal_type=SignalType.HIGHEST))
             case 'playing card':
                 current_player = self.game.round.get_current_player()
                 trick_moves = self.game.round.get_trick_moves()
-                hand = self.game.round.players[current_player.player_id].hand
+                hand = current_player.hand
                 legal_cards = hand
                 if trick_moves and len(trick_moves) < 4:
                     led_card: CrewCard = trick_moves[0].card
-                    cards_of_led_suit = [card for card in hand if card.suit == led_card.suit]
+                    cards_of_led_suit = [
+                        card for card in hand if card.suit == led_card.suit]
                     if cards_of_led_suit:
                         legal_cards = cards_of_led_suit
                 for card in legal_cards:

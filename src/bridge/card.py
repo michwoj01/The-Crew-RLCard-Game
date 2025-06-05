@@ -1,4 +1,14 @@
+from enum import Enum
 from rlcard.games.base import Card
+
+
+class SignalType(Enum):
+    LOWEST = 0
+    HIGHEST = 1
+    ONLY = 2
+
+    def __str__(self):
+        return self.name[0]
 
 
 class CrewCard(Card):

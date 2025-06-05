@@ -1,4 +1,4 @@
-from card import CrewCard
+from card import CrewCard, SignalType
 
 
 class CrewPlayer:
@@ -11,6 +11,7 @@ class CrewPlayer:
         self.hand: list[CrewCard] = []
         self.tasks_assigned: list[CrewCard] = []
         self.tasks_completed: list[CrewCard] = []
+        self.signal: tuple[CrewCard, SignalType] = None
 
     def remove_card_from_hand(self, card: CrewCard):
         self.hand.remove(card)
@@ -18,7 +19,14 @@ class CrewPlayer:
     def assign_task(self, task: CrewCard):
         self.tasks_assigned.append(task)
 
-    def complete_task(self, card_moves: [CrewCard]):
+    def can_signal(self):
+        return self.signal is None and len(self.hand) > 0
+
+    def signal_card(self, card: CrewCard, signal_type: SignalType):
+        if self.signal is None:
+            self.signal = (card, signal_type)
+
+    def complete_task(self, card_moves: list[CrewCard]):
         for card_move in card_moves:
             card = card_move.card
             if card in self.tasks_assigned:

@@ -65,6 +65,7 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         state_shape_size += 4 * 40  # hands_rep_size
         state_shape_size += 4 * 40  # trick_rep_size
         state_shape_size += 40      # hidden_cards_rep_size
+        state_shape_size += 4 * 120 # signal_rep_size
         state_shape_size += 4 * 36  # tasks_rep_size
         state_shape_size += 4  # current_player_rep_size
         return state_shape_size
@@ -97,12 +98,20 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
                 for card in player.tasks_assigned:
                     tasks_rep[player.player_id][card.card_id] = 1
 
+        signals_rep = [np.zeros(120, dtype=int) for _ in range(4)]
+        if not game.is_over():
+            for player in game.round.players:
+                if player.signal is not None:
+                    signals_rep[player.player_id][player.signal[1].value * 40 + player.signal[0].card_id] = 1
+
         hidden_cards_rep = np.zeros(40, dtype=int)
         if not game.is_over():
             for player in game.round.players:
                 if player.player_id != current_player_id:
                     for card in player.hand:
                         hidden_cards_rep[card.card_id] = 1
+                    if player.signal is not None:
+                        hidden_cards_rep[player.signal[0].card_id] = 0
 
         # construct current_player_rep
         current_player_rep = np.zeros(4, dtype=int)
@@ -112,6 +121,7 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         rep += hands_rep
         rep += trick_pile_rep
         rep += tasks_rep
+        rep += signals_rep
         rep.append(hidden_cards_rep)
         rep.append(current_player_rep)
 
