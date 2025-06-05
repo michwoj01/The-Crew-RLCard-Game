@@ -1,6 +1,7 @@
 from enum import Enum
 from rlcard.games.base import Card
 
+
 class SignalType(Enum):
     LOWEST = 0
     HIGHEST = 1
@@ -8,7 +9,6 @@ class SignalType(Enum):
 
     def __str__(self):
         return self.name[0]
-
 
 
 class CrewCard(Card):
@@ -34,6 +34,7 @@ class CrewCard(Card):
 
     def __repr__(self):
         return f'{self.suit}{self.rank}'
+
 
 _deck = [CrewCard(suit=suit, rank=rank) for suit in CrewCard.suits[:4] for rank in CrewCard.ranks] + \
         [CrewCard('R', rank) for rank in range(1, 5)]

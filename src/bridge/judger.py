@@ -28,9 +28,11 @@ class Judger:
                     hand = current_player.hand
                     suits = {card.suit for card in hand}
                     for suit in suits:
-                        cards_of_suit = [card for card in hand if card.suit == suit]
+                        cards_of_suit = [
+                            card for card in hand if card.suit == suit]
                         if len(cards_of_suit) == 1:
-                            legal_actions.append(SignalAction(card=cards_of_suit[0], signal_type=SignalType.ONLY))
+                            legal_actions.append(SignalAction(
+                                card=cards_of_suit[0], signal_type=SignalType.ONLY))
                         else:
                             legal_actions.append(
                                 SignalAction(card=min(cards_of_suit, key=lambda c: c.rank), signal_type=SignalType.LOWEST))
@@ -43,7 +45,8 @@ class Judger:
                 legal_cards = hand
                 if trick_moves and len(trick_moves) < 4:
                     led_card: CrewCard = trick_moves[0].card
-                    cards_of_led_suit = [card for card in hand if card.suit == led_card.suit]
+                    cards_of_led_suit = [
+                        card for card in hand if card.suit == led_card.suit]
                     if cards_of_led_suit:
                         legal_cards = cards_of_led_suit
                 for card in legal_cards:

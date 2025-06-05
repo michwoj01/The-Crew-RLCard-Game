@@ -34,7 +34,8 @@ class Round:
         self.current_player_id: int = dealer_id
         self.play_card_count: int = 0
         self.move_sheet: List[CrewMove] = []
-        self.move_sheet.append(DealHandMove(dealer=self.players[dealer_id], shuffled_deck=self.dealer.shuffled_deck))
+        self.move_sheet.append(DealHandMove(
+            dealer=self.players[dealer_id], shuffled_deck=self.dealer.shuffled_deck))
         self.impossible_to_win: bool = False
         self.signal_counter: int = 0
         self.signaling_phase: bool = True
