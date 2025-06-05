@@ -119,26 +119,3 @@ class Round:
             if any(item in won_trick for item in player.tasks_assigned) and player.player_id != trick_winner.player_id:
                 self.impossible_to_win = True
                 break
-
-    # def get_perfect_information(self):
-    #     state = {}
-    #     trick_moves = [None, None, None, None]
-    #     for trick_move in self.get_trick_moves():
-    #         trick_moves[trick_move.player.player_id] = trick_move.card
-    #     state['move_count'] = len(self.move_sheet)
-    #     state['current_player_id'] = self.current_player_id
-    #     state['round_phase'] = self.round_phase
-    #     state['hands'] = [player.hand for player in self.players]
-    #     state['tasks'] = [player.tasks_assigned for player in self.players]
-    #     state['trick_moves'] = trick_moves
-    #     return state
-    #
-    # def print_scene(self):
-    #     print(
-    #         f'===== Move: {len(self.move_sheet)} player: {self.players[self.current_player_id]} phase: {self.round_phase} =====')
-    #     for player in self.players:
-    #         print(f'{player}: {[str(card) for card in player.hand]}')
-    #     trick_pile = ['None', 'None', 'None', 'None']
-    #     for trick_move in self.get_trick_moves():
-    #         trick_pile[trick_move.player.player_id] = trick_move.card
-    #     print(f'trick_pile: {[str(card) for card in trick_pile]}')

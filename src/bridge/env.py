@@ -43,7 +43,7 @@ class DefaultCrewPayoffDelegate(CrewPayoffDelegate):
         return np.array(payoffs)
 
 
-class CrewStateExtractor(object):  # interface
+class CrewStateExtractor(object):
 
     def get_state_shape_size(self) -> int:
         raise NotImplementedError
