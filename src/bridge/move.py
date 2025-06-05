@@ -17,15 +17,14 @@ class PlayerMove(CrewMove):  # Interface
 
 class DealHandMove(CrewMove):
 
-    def __init__(self, dealer: CrewPlayer, shuffled_deck: list[CrewCard]):
+    def __init__(self, shuffled_deck: list[CrewCard]):
         super().__init__()
-        self.dealer = dealer
         self.shuffled_deck = shuffled_deck
 
     def __str__(self):
         shuffled_deck_text = " ".join([str(card)
                                       for card in self.shuffled_deck])
-        return f'{self.dealer} deal shuffled_deck=[{shuffled_deck_text}]'
+        return f'shuffled_deck=[{shuffled_deck_text}]'
 
 
 class PlayCardMove(PlayerMove):

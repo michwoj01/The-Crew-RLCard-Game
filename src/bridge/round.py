@@ -25,20 +25,31 @@ class Round:
 
     def __init__(self, num_players: int, np_random: RandomState):
         self.np_random: RandomState = np_random
-        dealer_id = 1
         self.dealer: Dealer = Dealer(self.np_random)
+        self.num_players: int = num_players
         self.players: List[CrewPlayer] = []
         for player_id in range(num_players):
             self.players.append(CrewPlayer(
                 player_id=player_id, np_random=self.np_random))
-        self.current_player_id: int = dealer_id
+        self.current_player_id: int = 0
         self.play_card_count: int = 0
         self.move_sheet: List[CrewMove] = []
         self.move_sheet.append(DealHandMove(
-            dealer=self.players[dealer_id], shuffled_deck=self.dealer.shuffled_deck))
+            shuffled_deck=self.dealer.shuffled_deck))
         self.impossible_to_win: bool = False
         self.signal_counter: int = 0
         self.signaling_phase: bool = True
+
+    def init_round(self):
+        for player_id in range(self.num_players):
+            player = self.players[player_id]
+            self.dealer.deal_cards(player=player, num=10)
+        self.current_player_id = next(
+            (player for player in self.players if any(
+                card.suit == 'R' and card.rank == 4 for card in player.hand)),
+            None
+        ).player_id
+        self.dealer.prepare_tasks()
 
     def is_over(self) -> bool:
         card_over = True
@@ -51,6 +62,9 @@ class Round:
 
     def get_current_player(self) -> CrewPlayer:
         return self.players[self.current_player_id]
+
+    def get_current_player_id(self) -> int:
+        return self.current_player_id
 
     def get_trick_moves(self) -> List[PlayCardMove]:
         trick_moves: List[PlayCardMove] = []

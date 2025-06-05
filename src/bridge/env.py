@@ -13,15 +13,13 @@ class CrewEnv(Env):
         self.crewPayoffDelegate = DefaultCrewPayoffDelegate()
         self.crewStateExtractor = DefaultCrewStateExtractor()
         state_shape_size = self.crewStateExtractor.get_state_shape_size()
-        self.state_shape = [[1, state_shape_size] for _ in range(self.num_players)]
+        self.state_shape = [[1, state_shape_size]
+                            for _ in range(self.num_players)]
 
     def get_payoffs(self):
         return self.crewPayoffDelegate.get_payoffs(game=self.game)
 
-    def get_perfect_information(self):
-        return self.game.round.get_perfect_information()
-
-    def _extract_state(self, state):  # wch: don't use state 211126
+    def _extract_state(self, state):
         return self.crewStateExtractor.extract_state(game=self.game)
 
     def _decode_action(self, action_id):
@@ -39,7 +37,8 @@ class DefaultCrewPayoffDelegate(CrewPayoffDelegate):
     def get_payoffs(self, game: CrewGame):
         x = sum([len(player.tasks_assigned) for player in game.round.players])
         y = sum([len(player.tasks_completed) for player in game.round.players])
-        payoffs = [(y / (x + y)) if len(player.tasks_completed) == 0 else 1.2 * (y / (x + y)) for player in game.round.players]
+        payoffs = [(y / (x + y)) if len(player.tasks_completed) ==
+                   0 else 1.2 * (y / (x + y)) for player in game.round.players]
         return np.array(payoffs)
 
 
@@ -54,7 +53,8 @@ class CrewStateExtractor(object):
     @staticmethod
     def get_legal_actions(game: CrewGame):
         legal_actions = game.judger.get_legal_actions()
-        legal_actions_ids = {action_event.action_id: None for action_event in legal_actions}
+        legal_actions_ids = {
+            action_event.action_id: None for action_event in legal_actions}
         return OrderedDict(legal_actions_ids)
 
 
@@ -65,7 +65,7 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         state_shape_size += 4 * 40  # hands_rep_size
         state_shape_size += 4 * 40  # trick_rep_size
         state_shape_size += 40      # hidden_cards_rep_size
-        state_shape_size += 4 * 120 # signal_rep_size
+        state_shape_size += 4 * 120  # signal_rep_size
         state_shape_size += 4 * 36  # tasks_rep_size
         state_shape_size += 4  # current_player_rep_size
         return state_shape_size
@@ -74,8 +74,7 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         extracted_state = {}
         legal_actions: OrderedDict = self.get_legal_actions(game=game)
         raw_legal_actions = list(legal_actions.keys())
-        current_player = game.round.get_current_player()
-        current_player_id = current_player.player_id
+        current_player_id = game.get_player_id()
 
         # construct hands_rep of hands of players
         hands_rep = [np.zeros(40, dtype=int) for _ in range(4)]
@@ -102,7 +101,8 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         if not game.is_over():
             for player in game.round.players:
                 if player.signal is not None:
-                    signals_rep[player.player_id][player.signal[1].value * 40 + player.signal[0].card_id] = 1
+                    signals_rep[player.player_id][player.signal[1].value *
+                                                  40 + player.signal[0].card_id] = 1
 
         hidden_cards_rep = np.zeros(40, dtype=int)
         if not game.is_over():
