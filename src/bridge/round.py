@@ -3,7 +3,7 @@ from typing import List
 from numpy.random import RandomState
 
 from action_event import PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
-from card import CrewCard
+from card import CrewCard, CrewTask
 from dealer import Dealer
 from player import CrewPlayer
 from move import PlayCardMove, CrewMove, DealHandMove, ChooseTaskMove, SignalMove, SkipMove
@@ -39,6 +39,8 @@ class Round:
         self.impossible_to_win: bool = False
         self.signal_counter: int = 0
         self.signaling_phase: bool = True
+        self.tasks: List[CrewTask] = []
+        self.trick_count: int = 1
 
     def init_round(self):
         for player_id in range(self.num_players):
@@ -56,7 +58,8 @@ class Round:
         task_over = True
         for player in self.players:
             card_over = card_over and not player.hand
-            task_over = task_over and not player.tasks_assigned
+        for task in self.tasks:
+            task_over = task_over and task.taken
 
         return self.impossible_to_win or (len(self.dealer.tasks) == 0 and (card_over or task_over))
 
@@ -80,7 +83,7 @@ class Round:
 
     def play_card(self, action: PlayCardAction):
         current_player = self.players[self.current_player_id]
-        self.move_sheet.append(PlayCardMove(current_player, action))
+        self.move_sheet.append(PlayCardMove(current_player.player_id, action))
         card = action.card
         current_player.remove_card_from_hand(card=card)
         self.play_card_count += 1
@@ -89,32 +92,32 @@ class Round:
         if len(trick_moves) == 4:
             trump_suit = CrewCard.suits[4]
             leading_card = trick_moves[0].card
-            trick_winner = trick_moves[0].player
+            trick_winner = trick_moves[0].player_id
             for move in trick_moves[1:]:
                 trick_card = move.card
-                trick_player = move.player
+                trick_player = move.player_id
                 if trick_card.suit == leading_card.suit:
-                    if trick_card.card_id > leading_card.card_id:
+                    if trick_card.rank > leading_card.rank:
                         leading_card = trick_card
                         trick_winner = trick_player
                 elif trick_card.suit == trump_suit:
                     leading_card = trick_card
                     trick_winner = trick_player
-            self.current_player_id = trick_winner.player_id
-            trick_winner.complete_task(card_moves=trick_moves)
+            self.current_player_id = trick_winner
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
             self.signaling_phase = True
             self.play_card_count = 0
+            self.trick_count += 1
         else:
             self.current_player_id = (self.current_player_id + 1) % 4
 
     def signal(self, action: SignalAction | SkipSignalAction):
         current_player = self.players[self.current_player_id]
         if isinstance(action, SkipSignalAction):
-            self.move_sheet.append(SkipMove(current_player, action))
+            self.move_sheet.append(SkipMove(current_player.player_id, action))
         else:
             current_player.signal_card(action.card, action.signal_type)
-            self.move_sheet.append(SignalMove(current_player, action))
+            self.move_sheet.append(SignalMove(current_player.player_id, action))
         self.signal_counter += 1
         if self.signal_counter == 4:
             self.signaling_phase = False
@@ -122,14 +125,13 @@ class Round:
         self.current_player_id = (self.current_player_id + 1) % 4
 
     def choose_task(self, action: ChooseTaskAction):
-        current_player = self.players[self.current_player_id]
-        self.move_sheet.append(ChooseTaskMove(current_player, action))
-        task = action.task
-        self.dealer.assign_task(current_player, task)
+        self.move_sheet.append(ChooseTaskMove(self.current_player_id, action))
+        card = action.card
+        self.tasks.append(self.dealer.assign_task(self.current_player_id, card))
         self.current_player_id = (self.current_player_id + 1) % 4
 
-    def check_tasks(self, trick_winner: CrewPlayer, won_trick: list[CrewCard]):
-        for player in self.players:
-            if any(item in won_trick for item in player.tasks_assigned) and player.player_id != trick_winner.player_id:
+    def check_tasks(self, trick_winner: int, won_trick: list[CrewCard]):
+        for task in self.tasks:
+            if task.card in won_trick and not task.complete(taker=trick_winner):
                 self.impossible_to_win = True
                 break

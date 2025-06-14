@@ -69,7 +69,6 @@ def train(args):
 
         agents.append(agent)
 
-    print(agents)
     env.set_agents(agents)
 
     # Start training
@@ -90,7 +89,6 @@ def train(args):
             # Here, we assume that DQN always plays the first position
             # and the other players play randomly (if any)
             for idx, trajectory in enumerate(trajectories):
-                print(len(trajectory), idx)
                 for ts in trajectory:
                     agents[idx].feed(ts)
 

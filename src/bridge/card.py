@@ -38,3 +38,20 @@ class CrewCard(Card):
 
 _deck = [CrewCard(suit=suit, rank=rank) for suit in CrewCard.suits[:4] for rank in CrewCard.ranks] + \
         [CrewCard('R', rank) for rank in range(1, 5)]
+
+class CrewTask:
+    def __init__(self, card: CrewCard, owner: int):
+        self.card: CrewCard = card
+        self.owner: int = owner
+        self.taken: bool = False
+        self.taker: int = -1
+
+    def complete(self, taker: int) -> bool:
+        if self.taken:
+            raise Exception(f'Task {self.card} already completed')
+        self.taker = taker
+        self.taken = True
+        if self.owner == taker:
+            return True
+        else:
+            return False

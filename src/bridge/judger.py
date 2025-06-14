@@ -19,8 +19,8 @@ class Judger:
             case 'game over':
                 legal_actions = []
             case 'choosing tasks':
-                for task in self.game.round.dealer.tasks:
-                    legal_actions.append(ChooseTaskAction(task=task))
+                for card in self.game.round.dealer.tasks:
+                    legal_actions.append(ChooseTaskAction(card=card))
             case 'signaling':
                 legal_actions.append(SkipSignalAction())
                 current_player = self.game.round.get_current_player()

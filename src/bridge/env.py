@@ -35,10 +35,25 @@ class CrewPayoffDelegate(object):
 class DefaultCrewPayoffDelegate(CrewPayoffDelegate):
 
     def get_payoffs(self, game: CrewGame):
-        x = sum([len(player.tasks_assigned) for player in game.round.players])
-        y = sum([len(player.tasks_completed) for player in game.round.players])
-        payoffs = [(y / (x + y)) if len(player.tasks_completed) ==
-                   0 else 1.2 * (y / (x + y)) for player in game.round.players]
+
+        payoffs = [0.0 for _ in range(game.num_players)]
+        total_tasks = len(game.round.tasks)
+        round_penalty = 1.0 - (game.round.trick_count / 10)
+        for task in game.round.tasks:
+            owner = task.owner
+            taken = task.taken
+            taker = task.taker
+
+            if taken:
+                if taker == owner:
+                    payoffs[owner] += 1.0
+                else:
+                    payoffs[taker] -= 0.5
+            else:
+                payoffs[owner] -= 1.0
+        payoffs = [p / total_tasks for p in payoffs]
+        payoffs = [p - round_penalty for p in payoffs]
+        payoffs = [max(-1.0, min(1.0, p)) for p in payoffs]
         return np.array(payoffs)
 
 
@@ -75,7 +90,6 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         legal_actions: OrderedDict = self.get_legal_actions(game=game)
         raw_legal_actions = list(legal_actions.keys())
         current_player_id = game.get_player_id()
-
         # construct hands_rep of hands of players
         hands_rep = [np.zeros(40, dtype=int) for _ in range(4)]
         if not game.is_over():
@@ -87,15 +101,14 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         if not game.is_over():
             trick_moves = game.round.get_trick_moves()
             for move in trick_moves:
-                player = move.player
+                player_id = move.player_id
                 card = move.card
-                trick_pile_rep[player.player_id][card.card_id] = 1
+                trick_pile_rep[player_id][card.card_id] = 1
 
         tasks_rep = [np.zeros(36, dtype=int) for _ in range(4)]
         if not game.is_over():
-            for player in game.round.players:
-                for card in player.tasks_assigned:
-                    tasks_rep[player.player_id][card.card_id] = 1
+            for task in game.round.tasks:
+                tasks_rep[task.owner][task.card.card_id] = 1
 
         signals_rep = [np.zeros(120, dtype=int) for _ in range(4)]
         if not game.is_over():

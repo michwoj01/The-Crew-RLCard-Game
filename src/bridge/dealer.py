@@ -1,6 +1,6 @@
 import random
 
-from card import CrewCard
+from card import CrewCard, CrewTask
 from player import CrewPlayer
 
 
@@ -23,6 +23,7 @@ class Dealer:
     def prepare_tasks(self):
         self.tasks = random.sample(self.tasks_pile, 4)
 
-    def assign_task(self, player: CrewPlayer, task: CrewCard):
-        player.assign_task(task)
-        self.tasks.remove(task)
+    def assign_task(self, player_id: int, card: CrewCard) -> CrewTask:
+        task = CrewTask(card=card, owner=player_id)
+        self.tasks.remove(card)
+        return task

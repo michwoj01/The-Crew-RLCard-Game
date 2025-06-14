@@ -23,9 +23,9 @@ class ActionEvent(object):
             card = CrewCard.card(card_id=action_id)
             return PlayCardAction(card=card)
         elif action_id < ActionEvent.first_signal_action_id:
-            task = CrewCard.card(card_id=action_id -
+            card = CrewCard.card(card_id=action_id -
                                  ActionEvent.first_choose_task_action_id)
-            return ChooseTaskAction(task=task)
+            return ChooseTaskAction(card=card)
         elif action_id <= ActionEvent.last_signal_action_id:
             signal_type_id = (
                 action_id - ActionEvent.first_signal_action_id) // 40
@@ -57,16 +57,16 @@ class PlayCardAction(ActionEvent):
 
 class ChooseTaskAction(ActionEvent):
 
-    def __init__(self, task: CrewCard):
-        choose_task_action_id = ActionEvent.first_choose_task_action_id + task.card_id
+    def __init__(self, card: CrewCard):
+        choose_task_action_id = ActionEvent.first_choose_task_action_id + card.card_id
         super().__init__(action_id=choose_task_action_id)
-        self.task: CrewCard = task
+        self.card: CrewCard = card
 
     def __str__(self):
-        return f"task - {self.task}"
+        return f"task - {self.card}"
 
     def __repr__(self):
-        return f"task - {self.task}"
+        return f"task - {self.card}"
 
 
 class SignalAction(ActionEvent):
