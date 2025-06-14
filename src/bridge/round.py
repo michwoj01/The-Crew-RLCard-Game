@@ -117,7 +117,8 @@ class Round:
             self.move_sheet.append(SkipMove(current_player.player_id, action))
         else:
             current_player.signal_card(action.card, action.signal_type)
-            self.move_sheet.append(SignalMove(current_player.player_id, action))
+            self.move_sheet.append(SignalMove(
+                current_player.player_id, action))
         self.signal_counter += 1
         if self.signal_counter == 4:
             self.signaling_phase = False
@@ -127,11 +128,14 @@ class Round:
     def choose_task(self, action: ChooseTaskAction):
         self.move_sheet.append(ChooseTaskMove(self.current_player_id, action))
         card = action.card
-        self.tasks.append(self.dealer.assign_task(self.current_player_id, card))
+        self.tasks.append(self.dealer.assign_task(
+            self.current_player_id, card))
         self.current_player_id = (self.current_player_id + 1) % 4
 
     def check_tasks(self, trick_winner: int, won_trick: list[CrewCard]):
         for task in self.tasks:
-            if task.card in won_trick and not task.complete(taker=trick_winner):
-                self.impossible_to_win = True
-                break
+            if task.card in won_trick:
+                task_completed = task.complete(taker=trick_winner)
+                if not task_completed:
+                    self.impossible_to_win = True
+                    break

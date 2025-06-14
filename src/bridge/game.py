@@ -18,8 +18,7 @@ class CrewGame:
             np_random=self.np_random)
         self.round.init_round()
         current_player_id = self.get_player_id()
-        state = self.get_state(player_id=current_player_id)
-        return state, current_player_id
+        return {}, current_player_id
 
     def step(self, action: ActionEvent):
         if isinstance(action, ChooseTaskAction):
@@ -29,8 +28,7 @@ class CrewGame:
         else:
             self.round.play_card(action=action)
         next_player_id = self.get_player_id()
-        next_state = self.get_state(player_id=next_player_id)
-        return next_state, next_player_id
+        return {}, next_player_id
 
     def get_num_players(self) -> int:
         return self.num_players
@@ -47,5 +45,4 @@ class CrewGame:
 
     # stub implementation, we use DefaultCrewStateExtractor
     def get_state(self, player_id: int):
-        state = {}
-        return state
+        return {}

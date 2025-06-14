@@ -1,4 +1,4 @@
-from card import CrewCard, CrewTask, SignalType
+from card import CrewCard, SignalType
 
 
 class CrewPlayer:
