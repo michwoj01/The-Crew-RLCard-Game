@@ -6,7 +6,7 @@ from action_event import PlayCardAction, ChooseTaskAction, SignalAction, SkipSig
 from card import CrewCard, CrewTask
 from dealer import Dealer
 from player import CrewPlayer
-from move import PlayCardMove, CrewMove, DealHandMove, ChooseTaskMove, SignalMove, SkipMove
+from move import PlayCardMove, CrewMove, ChooseTaskMove, SignalMove, SkipMove
 
 
 class Round:
@@ -34,8 +34,6 @@ class Round:
         self.current_player_id: int = 0
         self.play_card_count: int = 0
         self.move_sheet: List[CrewMove] = []
-        self.move_sheet.append(DealHandMove(
-            shuffled_deck=self.dealer.shuffled_deck))
         self.impossible_to_win: bool = False
         self.signal_counter: int = 0
         self.signaling_phase: bool = True

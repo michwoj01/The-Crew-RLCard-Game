@@ -10,32 +10,12 @@ class CrewEnv(Env):
         self.name = 'crew'
         self.game = CrewGame()
         super().__init__(config=config)
-        self.crewPayoffDelegate = DefaultCrewPayoffDelegate()
-        self.crewStateExtractor = DefaultCrewStateExtractor()
-        state_shape_size = self.crewStateExtractor.get_state_shape_size()
+        state_shape_size = self.get_state_shape_size()
         self.state_shape = [[1, state_shape_size]
                             for _ in range(self.num_players)]
 
     def get_payoffs(self):
-        return self.crewPayoffDelegate.get_payoffs(game=self.game)
-
-    def _extract_state(self, state):
-        return self.crewStateExtractor.extract_state(game=self.game)
-
-    def _decode_action(self, action_id):
-        return ActionEvent.from_action_id(action_id=action_id)
-
-
-class CrewPayoffDelegate(object):
-
-    def get_payoffs(self, game: CrewGame):
-        raise NotImplementedError
-
-
-class DefaultCrewPayoffDelegate(CrewPayoffDelegate):
-
-    def get_payoffs(self, game: CrewGame):
-
+        game = self.game
         payoffs = [0.0 for _ in range(game.num_players)]
         total_tasks = len(game.round.tasks)
         round_penalty = 1.0 - (game.round.trick_count / 10)
@@ -56,36 +36,19 @@ class DefaultCrewPayoffDelegate(CrewPayoffDelegate):
         payoffs = [max(-1.0, min(1.0, p)) for p in payoffs]
         return np.array(payoffs)
 
-
-class CrewStateExtractor(object):
-
-    def get_state_shape_size(self) -> int:
-        raise NotImplementedError
-
-    def extract_state(self, game: CrewGame):
-        raise NotImplementedError
-
     @staticmethod
-    def get_legal_actions(game: CrewGame):
-        legal_actions = game.judger.get_legal_actions()
-        legal_actions_ids = {
-            action_event.action_id: None for action_event in legal_actions}
-        return OrderedDict(legal_actions_ids)
-
-
-class DefaultCrewStateExtractor(CrewStateExtractor):
-
-    def get_state_shape_size(self) -> int:
+    def get_state_shape_size() -> int:
         state_shape_size = 0
         state_shape_size += 4 * 40  # hands_rep_size
         state_shape_size += 4 * 40  # trick_rep_size
-        state_shape_size += 40      # hidden_cards_rep_size
-        state_shape_size += 4 * 120  # signal_rep_size
         state_shape_size += 4 * 36  # tasks_rep_size
+        state_shape_size += 4 * 120  # signal_rep_size
+        state_shape_size += 40  # hidden_cards_rep_size
         state_shape_size += 4  # current_player_rep_size
         return state_shape_size
 
-    def extract_state(self, game: CrewGame):
+    def _extract_state(self, state):
+        game = self.game
         extracted_state = {}
         legal_actions: OrderedDict = self.get_legal_actions(game=game)
         raw_legal_actions = list(legal_actions.keys())
@@ -144,3 +107,12 @@ class DefaultCrewStateExtractor(CrewStateExtractor):
         extracted_state['raw_legal_actions'] = raw_legal_actions
         extracted_state['raw_obs'] = obs
         return extracted_state
+
+    def _decode_action(self, action_id):
+        return ActionEvent.from_action_id(action_id=action_id)
+
+    @staticmethod
+    def get_legal_actions(game: CrewGame):
+        legal_actions = game.judger.get_legal_actions()
+        legal_actions_ids = {action_event.action_id: None for action_event in legal_actions}
+        return OrderedDict(legal_actions_ids)

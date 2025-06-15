@@ -1,5 +1,5 @@
 from action_event import *
-from card import CrewCard
+
 
 class CrewMove(object):  # Interface
     pass
@@ -11,18 +11,6 @@ class PlayerMove(CrewMove):  # Interface
         super().__init__()
         self.player_id = player_id
         self.action = action
-
-
-class DealHandMove(CrewMove):
-
-    def __init__(self, shuffled_deck: list[CrewCard]):
-        super().__init__()
-        self.shuffled_deck = shuffled_deck
-
-    def __str__(self):
-        shuffled_deck_text = " ".join([str(card)
-                                      for card in self.shuffled_deck])
-        return f'shuffled_deck=[{shuffled_deck_text}]'
 
 
 class PlayCardMove(PlayerMove):
