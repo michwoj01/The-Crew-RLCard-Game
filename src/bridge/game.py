@@ -5,16 +5,18 @@ from round import Round
 
 
 class CrewGame:
-    def __init__(self):
+    def __init__(self, num_players: int = 4, no_tasks: int = 4, seed: int = 42):
         self.allow_step_back = False
-        self.np_random = np.random.RandomState(seed=42)
+        self.np_random = np.random.RandomState(seed=seed)
         self.judger: Judger = Judger(game=self)
         self.round: Round = None  # must reset in init_game
-        self.num_players: int = 4
+        self.num_players: int = num_players
+        self.no_tasks: int = no_tasks
 
     def init_game(self):
         self.round = Round(
             num_players=self.num_players,
+            no_tasks=self.no_tasks,
             np_random=self.np_random)
         self.round.init_round()
         current_player_id = self.get_player_id()

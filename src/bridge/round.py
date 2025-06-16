@@ -23,9 +23,9 @@ class Round:
             result = 'playing card'
         return result
 
-    def __init__(self, num_players: int, np_random: RandomState):
+    def __init__(self, num_players: int, no_tasks: int, np_random: RandomState):
         self.np_random: RandomState = np_random
-        self.dealer: Dealer = Dealer(self.np_random)
+        self.dealer: Dealer = Dealer(no_tasks, self.np_random)
         self.num_players: int = num_players
         self.players: List[CrewPlayer] = []
         for player_id in range(num_players):
@@ -49,7 +49,6 @@ class Round:
                 card.suit == 'R' and card.rank == 4 for card in player.hand)),
             None
         ).player_id
-        self.dealer.prepare_tasks()
 
     def is_over(self) -> bool:
         card_over = True
@@ -126,8 +125,7 @@ class Round:
     def choose_task(self, action: ChooseTaskAction):
         self.move_sheet.append(ChooseTaskMove(self.current_player_id, action))
         card = action.card
-        self.tasks.append(self.dealer.assign_task(
-            self.current_player_id, card))
+        self.tasks.append(self.dealer.assign_task(self.current_player_id, card))
         self.current_player_id = (self.current_player_id + 1) % 4
 
     def check_tasks(self, trick_winner: int, won_trick: list[CrewCard]):

@@ -23,7 +23,11 @@ def train(args):
         entry_point='env:CrewEnv',
     )
 
-    env = rlcard.make('crew', config={'seed': args.seed})
+    env = rlcard.make('crew', config={
+        'num_players': args.num_players,
+        'no_tasks': args.no_tasks,
+        'seed': args.seed
+    })
     device = get_device()
 
     agents = [
@@ -73,6 +77,8 @@ if __name__ == '__main__':
     parser.add_argument("--load_checkpoint_path", type=str, default="")
     parser.add_argument("--save_every", type=int, default=-1)
     parser.add_argument("--algorithm", type=str, default="dqn")
+    parser.add_argument("--num_players", type=int, default=4)
+    parser.add_argument("--no_tasks", type=int, default=1)
 
     args = parser.parse_args()
 

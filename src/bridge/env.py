@@ -8,7 +8,7 @@ from action_event import ActionEvent
 class CrewEnv(Env):
     def __init__(self, config):
         self.name = 'crew'
-        self.game = CrewGame()
+        self.game = CrewGame(config['num_players'], config['no_tasks'], config['seed'])
         super().__init__(config=config)
         state_shape_size = self.get_state_shape_size()
         self.state_shape = [[1, state_shape_size]
