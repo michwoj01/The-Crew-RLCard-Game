@@ -3,12 +3,14 @@ from collections import OrderedDict
 from game import CrewGame
 from rlcard.envs import Env
 from action_event import ActionEvent
+from src.bridge.judger import Judger
 
 
 class CrewEnv(Env):
     def __init__(self, config):
         self.name = 'crew'
         self.game = CrewGame(config['num_players'], config['no_tasks'], config['seed'])
+        self.judger: Judger = Judger(game=self.game)
         super().__init__(config=config)
         state_shape_size = self.get_state_shape_size()
         self.state_shape = [[1, state_shape_size]
@@ -16,29 +18,20 @@ class CrewEnv(Env):
 
     def get_payoffs(self):
         game = self.game
-        payoffs = [0.0 for _ in range(game.num_players)]
-        round_penalty = round(1.0 - (game.round.trick_count / 10), 2)
+        payoffs = game.round.payoffs
         all_tasks_taken = True
         for task in game.round.tasks:
-            owner = task.owner
-            taken = task.taken
-            taker = task.taker
-
-            if taken:
-                if taker == owner:
-                    payoffs[owner] += 0.5
-                else:
-                    all_tasks_taken = False
-                    payoffs[taker] -= 0.5
-            else:
+            if not task.taken or task.owner != task.taker:
                 all_tasks_taken = False
-                payoffs[owner] -= 0.5
-        if all_tasks_taken:
-            payoffs = [1 for p in payoffs]
-        else:
-            payoffs = [p - round_penalty for p in payoffs]
-        payoffs = [max(-1.0, min(1.0, p)) for p in payoffs]
-        return np.array(payoffs)
+                break
+        for player_payoff in payoffs:
+            if all_tasks_taken:
+                player_payoff[-1] += 0.5
+                player_payoff[-1] = min(player_payoff[-1], 1)
+            else:
+                player_payoff[-1] -= 0.25
+                player_payoff[-1] = max(player_payoff[-1], -1)
+        return payoffs
 
     @staticmethod
     def get_state_shape_size() -> int:
@@ -54,7 +47,7 @@ class CrewEnv(Env):
     def _extract_state(self, state):
         game = self.game
         extracted_state = {}
-        legal_actions: OrderedDict = self.get_legal_actions(game=game)
+        legal_actions: OrderedDict = self.get_legal_actions()
         raw_legal_actions = list(legal_actions.keys())
         current_player_id = game.get_player_id()
 
@@ -108,14 +101,12 @@ class CrewEnv(Env):
         extracted_state['obs'] = obs
         extracted_state['legal_actions'] = legal_actions
         extracted_state['raw_legal_actions'] = raw_legal_actions
-        extracted_state['raw_obs'] = obs
         return extracted_state
 
     def _decode_action(self, action_id):
         return ActionEvent.from_action_id(action_id=action_id)
 
-    @staticmethod
-    def get_legal_actions(game: CrewGame):
-        legal_actions = game.judger.get_legal_actions()
+    def get_legal_actions(self):
+        legal_actions = self.judger.get_legal_actions()
         legal_actions_ids = {action_event.action_id: None for action_event in legal_actions}
         return OrderedDict(legal_actions_ids)

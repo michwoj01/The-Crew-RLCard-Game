@@ -1,5 +1,4 @@
 import numpy as np
-from judger import Judger
 from action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
 from round import Round
 
@@ -7,9 +6,8 @@ from round import Round
 class CrewGame:
     def __init__(self, num_players: int = 4, no_tasks: int = 4, seed: int = 42):
         self.allow_step_back = False
+        self.round: Round = None
         self.np_random = np.random.RandomState(seed=seed)
-        self.judger: Judger = Judger(game=self)
-        self.round: Round = None  # must reset in init_game
         self.num_players: int = num_players
         self.no_tasks: int = no_tasks
 
@@ -45,6 +43,6 @@ class CrewGame:
     def is_over(self) -> bool:
         return self.round.is_over()
 
-    # stub implementation, we use DefaultCrewStateExtractor
+    # stub implementation
     def get_state(self, player_id: int):
         return {}

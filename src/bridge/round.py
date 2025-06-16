@@ -28,9 +28,11 @@ class Round:
         self.dealer: Dealer = Dealer(no_tasks, self.np_random)
         self.num_players: int = num_players
         self.players: List[CrewPlayer] = []
+        self.payoffs: List[List[float]] =  []
         for player_id in range(num_players):
             self.players.append(CrewPlayer(
                 player_id=player_id, np_random=self.np_random))
+            self.payoffs.append([])
         self.current_player_id: int = 0
         self.starting_player_id: int = 0
         self.play_card_count: int = 0
@@ -87,7 +89,7 @@ class Round:
         current_player.remove_card_from_hand(card=card)
         self.play_card_count += 1
         trick_moves = self.get_trick_moves()
-
+        self.payoffs[self.current_player_id].append(0)
         if len(trick_moves) == 4:
             leading_card = trick_moves[0].card
             trick_winner = trick_moves[0].player_id
@@ -117,6 +119,7 @@ class Round:
             current_player.signal_card(action.card, action.signal_type)
             self.move_sheet.append(SignalMove(
                 current_player.player_id, action))
+        self.payoffs[self.current_player_id].append(0)
         self.signal_counter += 1
         if self.signal_counter == 4:
             self.signaling_phase = False
@@ -127,6 +130,7 @@ class Round:
         self.move_sheet.append(ChooseTaskMove(self.current_player_id, action))
         card = action.card
         self.tasks.append(self.dealer.assign_task(self.current_player_id, card))
+        self.payoffs[self.current_player_id].append(0)
         if  len(self.dealer.tasks) > 0:
             self.current_player_id = (self.current_player_id + 1) % 4
         else:
@@ -138,4 +142,11 @@ class Round:
                 task_completed = task.complete(taker=trick_winner)
                 if not task_completed:
                     self.impossible_to_win = True
+                    self.payoffs[task.taker][-1] = -0.5
                     break
+                else:
+                    for player in self.players:
+                        if player.player_id == task.taker:
+                            self.payoffs[player.player_id][-1] += 0.5
+                        else:
+                            self.payoffs[player.player_id][-1] += 0.25
