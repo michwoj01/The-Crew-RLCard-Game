@@ -13,6 +13,7 @@ class SignalType(Enum):
 
 class CrewCard(Card):
     suits = ['B', 'G', 'Y', 'P', 'R']
+    trump_suit = 'R'
     ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
     def __init__(self, suit: str, rank: int):
@@ -37,7 +38,7 @@ class CrewCard(Card):
 
 
 _deck = [CrewCard(suit=suit, rank=rank) for suit in CrewCard.suits[:4] for rank in CrewCard.ranks] + \
-        [CrewCard('R', rank) for rank in range(1, 5)]
+        [CrewCard(CrewCard.trump_suit, rank) for rank in range(1, 5)]
 
 class CrewTask:
     def __init__(self, card: CrewCard, owner: int):

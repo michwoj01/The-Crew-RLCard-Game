@@ -17,8 +17,8 @@ class CrewEnv(Env):
     def get_payoffs(self):
         game = self.game
         payoffs = [0.0 for _ in range(game.num_players)]
-        total_tasks = len(game.round.tasks)
-        round_penalty = 1.0 - (game.round.trick_count / 10)
+        round_penalty = round(1.0 - (game.round.trick_count / 10), 2)
+        all_tasks_taken = True
         for task in game.round.tasks:
             owner = task.owner
             taken = task.taken
@@ -26,13 +26,17 @@ class CrewEnv(Env):
 
             if taken:
                 if taker == owner:
-                    payoffs[owner] += 1.0
+                    payoffs[owner] += 0.5
                 else:
+                    all_tasks_taken = False
                     payoffs[taker] -= 0.5
             else:
-                payoffs[owner] -= 1.0
-        payoffs = [p / total_tasks for p in payoffs]
-        payoffs = [p - round_penalty for p in payoffs]
+                all_tasks_taken = False
+                payoffs[owner] -= 0.5
+        if all_tasks_taken:
+            payoffs = [1 for p in payoffs]
+        else:
+            payoffs = [p - round_penalty for p in payoffs]
         payoffs = [max(-1.0, min(1.0, p)) for p in payoffs]
         return np.array(payoffs)
 
@@ -53,13 +57,12 @@ class CrewEnv(Env):
         legal_actions: OrderedDict = self.get_legal_actions(game=game)
         raw_legal_actions = list(legal_actions.keys())
         current_player_id = game.get_player_id()
-        # construct hands_rep of hands of players
+
         hands_rep = [np.zeros(40, dtype=int) for _ in range(4)]
         if not game.is_over():
             for card in game.round.players[current_player_id].hand:
                 hands_rep[current_player_id][card.card_id] = 1
 
-        # construct trick_pile_rep
         trick_pile_rep = [np.zeros(40, dtype=int) for _ in range(4)]
         if not game.is_over():
             trick_moves = game.round.get_trick_moves()
@@ -77,8 +80,9 @@ class CrewEnv(Env):
         if not game.is_over():
             for player in game.round.players:
                 if player.signal is not None:
-                    signals_rep[player.player_id][player.signal[1].value *
-                                                  40 + player.signal[0].card_id] = 1
+                    index = (player.signal[1].value * 40
+                             + player.signal[0].card_id)
+                    signals_rep[player.player_id][index] = 1
 
         hidden_cards_rep = np.zeros(40, dtype=int)
         if not game.is_over():
@@ -89,7 +93,6 @@ class CrewEnv(Env):
                     if player.signal is not None:
                         hidden_cards_rep[player.signal[0].card_id] = 0
 
-        # construct current_player_rep
         current_player_rep = np.zeros(4, dtype=int)
         current_player_rep[current_player_id] = 1
 

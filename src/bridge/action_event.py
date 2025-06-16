@@ -49,10 +49,10 @@ class PlayCardAction(ActionEvent):
         self.card: CrewCard = card
 
     def __str__(self):
-        return f"card - {self.card}"
+        return f"{self.card}"
 
     def __repr__(self):
-        return f"card - {self.card}"
+        return f"{self.card}"
 
 
 class ChooseTaskAction(ActionEvent):

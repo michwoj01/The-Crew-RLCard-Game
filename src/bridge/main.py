@@ -10,7 +10,11 @@ register(
     entry_point='env:CrewEnv',
 )
 
-env = rlcard.make('crew', config={'seed': 42})
+env = rlcard.make('crew', config={
+    'num_players': 4,
+    'no_tasks': 1,
+    'seed': 42
+})
 
 set_seed(42)
 

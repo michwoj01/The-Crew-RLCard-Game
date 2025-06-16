@@ -12,7 +12,7 @@ class HumanAgent(object):
     def step(state):
         _print_state(state)
         action = int(input('>> You choose action (integer): '))
-        while action < 0 or action >= len(state['legal_actions']):
+        while not isinstance(action, int) or action < 0 or action >= len(state['legal_actions']):
             print('Action illegal...')
             action = int(input('>> Re-choose action (integer): '))
         return state['raw_legal_actions'][action]
@@ -29,9 +29,8 @@ def _print_state(state):
     hand_start = current_player_id * 40
     hand = [i for i in range(40) if raw_obs[hand_start + i] == 1]
 
-    print(f"\nTwoje karty ({len(hand)}):")
-    for idx, card_id in enumerate(hand):
-        print(f"  {idx}: {ActionEvent.from_action_id(card_id)}")
+    print(f"\nTwoje karty ({len(hand)}): ", end="")
+    print(", ".join([f"{ActionEvent.from_action_id(card_id)}" for card_id in hand]))
 
     print("\nAktualna lewa:")
     trick_pile_offset = 4 * 40
@@ -59,6 +58,12 @@ def _print_state(state):
                 signal_type = sig // 40
                 print(f"  Gracz {pid}: {ActionEvent.from_action_id(card_id)}, typ sygnału: {signal_type}")
 
+    # hidden_cards_offset = signals_offset + 4 * 120
+    # hidden_cards = [i for i in range(40) if raw_obs[hidden_cards_offset + i] == 1]
+    # print("\nUkryte karty innych graczy:")
+    # for card_id in hidden_cards:
+    #     print(f"  {ActionEvent.from_action_id(card_id)}")
+
     print("\nMożliwe akcje:")
     for idx, action_id in enumerate(raw_legal_actions):
-        print(f"  {idx}: Zagraj {ActionEvent.from_action_id(action_id)} (action_id={action_id})")
+        print(f"  {idx}: Zagraj {ActionEvent.from_action_id(action_id)}")
