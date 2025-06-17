@@ -142,11 +142,7 @@ class Round:
                 task_completed = task.complete(taker=trick_winner)
                 if not task_completed:
                     self.impossible_to_win = True
-                    self.payoffs[task.taker][-1] = -0.5
                     break
                 else:
                     for player in self.players:
-                        if player.player_id == task.taker:
-                            self.payoffs[player.player_id][-1] += 0.5
-                        else:
-                            self.payoffs[player.player_id][-1] += 0.25
+                        self.payoffs[player.player_id][-1] = 0.5

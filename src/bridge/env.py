@@ -26,11 +26,9 @@ class CrewEnv(Env):
                 break
         for player_payoff in payoffs:
             if all_tasks_taken:
-                player_payoff[-1] += 0.5
-                player_payoff[-1] = min(player_payoff[-1], 1)
+                player_payoff[-1] = 1
             else:
-                player_payoff[-1] -= 0.25
-                player_payoff[-1] = max(player_payoff[-1], -1)
+                player_payoff[-1] = -1
         return payoffs
 
     @staticmethod

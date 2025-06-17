@@ -22,41 +22,38 @@ class HumanAgent(object):
 
 
 def _print_state(state):
-    raw_obs = state['raw_obs']
+    raw_obs = state['obs']
     raw_legal_actions = state['raw_legal_actions']
 
     current_player_id = np.argmax(raw_obs[-4:])
     hand_start = current_player_id * 40
     hand = [i for i in range(40) if raw_obs[hand_start + i] == 1]
 
-    print(f"\nTwoje karty ({len(hand)}): ", end="")
+    print(f"\nYour hand ({len(hand)}): ", end="")
     print(", ".join([f"{ActionEvent.from_action_id(card_id)}" for card_id in hand]))
 
-    print("\nAktualna lewa:")
+    print("\nCurrent trick:")
     trick_pile_offset = 4 * 40
     for pid in range(4):
         player_trick = [i for i in range(40) if raw_obs[trick_pile_offset + pid * 40 + i] == 1]
         if player_trick:
-            for card_id in player_trick:
-                print(f"  Gracz {pid}: {ActionEvent.from_action_id(card_id)}")
+            print(", ".join([f"  Player {pid}: {ActionEvent.from_action_id(card_id)}" for card_id in player_trick]))
 
-    print("\nAktualne taski:")
+    print("\nTasks:")
     tasks_offset = 8 * 40
     for pid in range(4):
         player_tasks = [i for i in range(36) if raw_obs[tasks_offset + pid * 36 + i] == 1]
         if player_tasks:
             for card_id in player_tasks:
-                print(f"  Gracz {pid}: {ActionEvent.from_action_id(card_id)}")
+                print(f"  Player {pid}: {ActionEvent.from_action_id(card_id)}")
 
-    print("\nSygnały graczy:")
+    print("\nSignals:")
     signals_offset = tasks_offset + 4 * 36
     for pid in range(4):
         player_signals = [i for i in range(120) if raw_obs[signals_offset + pid * 120 + i] == 1]
         if player_signals:
             for sig in player_signals:
-                card_id = sig % 40
-                signal_type = sig // 40
-                print(f"  Gracz {pid}: {ActionEvent.from_action_id(card_id)}, typ sygnału: {signal_type}")
+                print(f"  Player {pid} {ActionEvent.from_action_id(76 + sig)}")
 
     # hidden_cards_offset = signals_offset + 4 * 120
     # hidden_cards = [i for i in range(40) if raw_obs[hidden_cards_offset + i] == 1]
@@ -64,6 +61,6 @@ def _print_state(state):
     # for card_id in hidden_cards:
     #     print(f"  {ActionEvent.from_action_id(card_id)}")
 
-    print("\nMożliwe akcje:")
+    print("\nLegal actions:")
     for idx, action_id in enumerate(raw_legal_actions):
-        print(f"  {idx}: Zagraj {ActionEvent.from_action_id(action_id)}")
+        print(f"  {idx}: Play {ActionEvent.from_action_id(action_id)}")
