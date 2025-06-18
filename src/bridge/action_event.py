@@ -37,8 +37,8 @@ class ActionEvent(object):
             raise ValueError(f"Invalid action_id: {action_id}")
 
     @staticmethod
-    def get_num_actions():
-        return 197
+    def get_num_actions(skip_signals: bool = False) -> int:
+        return 76 if skip_signals else 197
 
 
 class PlayCardAction(ActionEvent):

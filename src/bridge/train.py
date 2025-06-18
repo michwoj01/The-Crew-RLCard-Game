@@ -63,7 +63,9 @@ def train(args):
     env: CrewEnv = rlcard.make('crew', config={
         'num_players': args.num_players,
         'no_tasks': args.no_tasks,
-        'seed': args.seed
+        'seed': args.seed,
+        'fixed_tasks': args.fixed_tasks,
+        'skip_signals': args.skip_signals,
     })
     device = get_device()
 
@@ -142,6 +144,8 @@ if __name__ == '__main__':
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
     parser.add_argument("--no_tasks", type=int, default=1)
+    parser.add_argument("--fixed_tasks", type=bool, default=False)
+    parser.add_argument("--skip_signals", type=bool, default=True)
 
     args = parser.parse_args()
 

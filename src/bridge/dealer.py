@@ -6,14 +6,18 @@ from player import CrewPlayer
 
 class Dealer:
 
-    def __init__(self, no_tasks: int, np_random):
+    def __init__(self, no_tasks: int, np_random, fixed_tasks: bool = False):
         self.np_random = np_random
         self.shuffled_deck: list[CrewCard] = CrewCard.get_deck()
         self.np_random.shuffle(self.shuffled_deck)
         self.stock_pile: list[CrewCard] = self.shuffled_deck.copy()
-        # self.np_random.shuffle(self.shuffled_deck)
-        # self.tasks_pile: list[CrewCard] = [card for card in self.shuffled_deck if card.suit != CrewCard.trump_suit]
-        self.tasks: list[CrewCard] = [CrewCard(suit='Y', rank=8)]
+        if fixed_tasks:
+            fixed_tasks =  [CrewCard(suit='Y', rank=8), CrewCard(suit='G', rank=2), CrewCard(suit='B', rank=3), CrewCard(suit='P', rank=1)]
+            self.tasks = fixed_tasks[:no_tasks]
+        else:
+            self.np_random.shuffle(self.shuffled_deck)
+            self.tasks_pile: list[CrewCard] = [card for card in self.shuffled_deck if card.suit != CrewCard.trump_suit]
+            self.tasks: list[CrewCard] = random.sample(self.tasks_pile, no_tasks)
 
     def deal_cards(self, player: CrewPlayer, num: int):
         for _ in range(num):

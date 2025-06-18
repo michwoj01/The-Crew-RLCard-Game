@@ -47,19 +47,19 @@ def _print_state(state):
             for card_id in player_tasks:
                 print(f"  Player {pid}: {ActionEvent.from_action_id(card_id)}")
 
+    hidden_cards_offset = tasks_offset + 36
+    hidden_cards = [i for i in range(40) if raw_obs[hidden_cards_offset + i] == 1]
+    print("\nUkryte karty innych graczy:")
+    for card_id in hidden_cards:
+        print(f"  {ActionEvent.from_action_id(card_id)}")
+
     print("\nSignals:")
-    signals_offset = tasks_offset + 4 * 36
+    signals_offset = tasks_offset + 4 * 36 + 40 + 4
     for pid in range(4):
         player_signals = [i for i in range(120) if raw_obs[signals_offset + pid * 120 + i] == 1]
         if player_signals:
             for sig in player_signals:
                 print(f"  Player {pid} {ActionEvent.from_action_id(76 + sig)}")
-
-    # hidden_cards_offset = signals_offset + 4 * 120
-    # hidden_cards = [i for i in range(40) if raw_obs[hidden_cards_offset + i] == 1]
-    # print("\nUkryte karty innych graczy:")
-    # for card_id in hidden_cards:
-    #     print(f"  {ActionEvent.from_action_id(card_id)}")
 
     print("\nLegal actions:")
     for idx, action_id in enumerate(raw_legal_actions):
