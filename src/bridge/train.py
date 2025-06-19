@@ -79,9 +79,14 @@ def train(args):
                 device=device,
                 save_path=args.log_dir,
                 save_every=args.save_every,
-                replay_memory_init_size = 1000,
-                epsilon_decay_steps=500000,
+                replay_memory_size=50000,
+                replay_memory_init_size = 2000,
+                epsilon_decay_steps=500_000,
+                epsilon_start=0.15,
+                epsilon_end=0.01,
+                batch_size=64,
                 mlp_layers=[128, 128],
+                learning_rate=1e-4,
             )
     else:
         if args.load_checkpoint_path:
@@ -143,9 +148,9 @@ if __name__ == '__main__':
     parser.add_argument("--save_every", type=int, default=10000)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=1)
-    parser.add_argument("--fixed_tasks", type=bool, default=False)
-    parser.add_argument("--skip_signals", type=bool, default=True)
+    parser.add_argument("--no_tasks", type=int, default=2)
+    parser.add_argument("--fixed_tasks", type=bool, default=True)
+    parser.add_argument("--skip_signals", type=bool, default=False)
 
     args = parser.parse_args()
 

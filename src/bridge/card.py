@@ -18,9 +18,9 @@ class CrewCard(Card):
 
     def __init__(self, suit: str, rank: int):
         super().__init__(suit=suit, rank=rank)
-        suit_index = CrewCard.suits.index(suit)
-        rank_index = CrewCard.ranks.index(rank)
-        self.card_id = 9 * suit_index + rank_index
+        self.suit_index = CrewCard.suits.index(suit)
+        self.rank_index = CrewCard.ranks.index(rank)
+        self.card_id = 9 * self.suit_index + self.rank_index
 
     @staticmethod
     def card(card_id: int):

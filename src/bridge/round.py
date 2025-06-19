@@ -17,16 +17,18 @@ class Round:
             result = 'choosing tasks'
         elif self.is_over():
             result = 'game over'
-        # elif self.signaling_phase:
-        #     result = 'signaling'
+        elif not self.skip_signals and self.signaling_phase:
+            result = 'signaling'
         else:
             result = 'playing card'
         return result
 
-    def __init__(self, num_players: int, no_tasks: int, np_random: RandomState, fixed_tasks: bool = False):
+    def __init__(self, num_players: int, no_tasks: int, np_random: RandomState,
+                 fixed_tasks: bool = False, skip_signals: bool = False):
         self.np_random: RandomState = np_random
         self.dealer: Dealer = Dealer(no_tasks, self.np_random, fixed_tasks)
         self.num_players: int = num_players
+        self.skip_signals: bool = skip_signals
         self.players: List[CrewPlayer] = []
         self.payoffs: List[List[float]] =  []
         for player_id in range(num_players):
@@ -105,7 +107,8 @@ class Round:
                     trick_winner = trick_player
             self.current_player_id = trick_winner
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
-            # self.signaling_phase = True
+            if not self.skip_signals:
+                self.signaling_phase = True
             self.play_card_count = 0
             self.trick_count += 1
         else:

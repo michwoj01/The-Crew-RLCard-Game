@@ -19,7 +19,8 @@ class CrewGame:
             num_players=self.num_players,
             no_tasks=self.no_tasks,
             np_random=self.np_random,
-            fixed_tasks=self.fixed_tasks)
+            fixed_tasks=self.fixed_tasks,
+            skip_signals=self.skip_signals)
         self.round.init_round()
         current_player_id = self.get_player_id()
         return {}, current_player_id
