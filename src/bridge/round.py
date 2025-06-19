@@ -44,6 +44,7 @@ class Round:
         self.signaling_phase: bool = True
         self.tasks: List[CrewTask] = []
         self.trick_count: int = 0
+        self.card_record = [0 for _ in range(40)]
 
     def init_round(self):
         for player_id in range(self.num_players):
@@ -88,6 +89,7 @@ class Round:
         current_player = self.players[self.current_player_id]
         self.move_sheet.append(PlayCardMove(current_player.player_id, action))
         card = action.card
+        self.card_record[card.card_id] = 1
         current_player.remove_card_from_hand(card=card)
         self.play_card_count += 1
         trick_moves = self.get_trick_moves()
