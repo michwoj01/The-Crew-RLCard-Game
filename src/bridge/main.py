@@ -12,8 +12,10 @@ register(
 
 env = rlcard.make('crew', config={
     'num_players': 4,
-    'no_tasks': 1,
-    'seed': 42
+    'no_tasks': 2,
+    'seed': 42,
+    'fixed_tasks': False,
+    'skip_signals': False,
 })
 
 set_seed(42)
