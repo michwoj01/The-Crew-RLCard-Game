@@ -5,8 +5,8 @@ from numpy.random import RandomState
 from action_event import PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
 from card import CrewCard, CrewTask
 from dealer import Dealer
-from player import CrewPlayer
 from move import PlayCardMove, CrewMove, ChooseTaskMove, SignalMove, SkipMove
+from player import CrewPlayer
 
 
 class Round:
@@ -30,7 +30,7 @@ class Round:
         self.num_players: int = num_players
         self.skip_signals: bool = skip_signals
         self.players: List[CrewPlayer] = []
-        self.payoffs: List[List[float]] =  []
+        self.payoffs: List[List[float]] = []
         for player_id in range(num_players):
             self.players.append(CrewPlayer(
                 player_id=player_id, np_random=self.np_random))
@@ -105,10 +105,13 @@ class Round:
                 elif trick_card.suit == CrewCard.trump_suit:
                     leading_card = trick_card
                     trick_winner = trick_player
-            self.current_player_id = trick_winner
+            self.starting_player_id = trick_winner
+            self.current_player_id = self.starting_player_id
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
-            if not self.skip_signals:
+            if not self.skip_signals and self.signal_counter < 4:
                 self.signaling_phase = True
+                while self.players[self.current_player_id].signal is not None:
+                    self.current_player_id = (self.current_player_id + 1) % 4
             self.play_card_count = 0
             self.trick_count += 1
         else:
@@ -120,21 +123,29 @@ class Round:
             self.move_sheet.append(SkipMove(current_player.player_id, action))
         else:
             current_player.signal_card(action.card, action.signal_type)
-            self.move_sheet.append(SignalMove(
-                current_player.player_id, action))
+            self.move_sheet.append(SignalMove(current_player.player_id, action))
+            self.signal_counter += 1
         self.payoffs[self.current_player_id].append(0)
-        self.signal_counter += 1
         if self.signal_counter == 4:
             self.signaling_phase = False
-            self.signal_counter = 0
-        self.current_player_id = (self.current_player_id + 1) % 4
+            self.current_player_id = self.starting_player_id
+        else:
+            for _ in range(4):
+                self.current_player_id = (self.current_player_id + 1) % 4
+                if self.current_player_id == self.starting_player_id:
+                    self.signaling_phase = False
+                    break
+                if self.players[self.current_player_id].signal is None:
+                    break
+            else:
+                raise Exception("All players have signals, but signaling phase is not over.")
 
     def choose_task(self, action: ChooseTaskAction):
         self.move_sheet.append(ChooseTaskMove(self.current_player_id, action))
         card = action.card
         self.tasks.append(self.dealer.assign_task(self.current_player_id, card))
         self.payoffs[self.current_player_id].append(0)
-        if  len(self.dealer.tasks) > 0:
+        if len(self.dealer.tasks) > 0:
             self.current_player_id = (self.current_player_id + 1) % 4
         else:
             self.current_player_id = self.starting_player_id

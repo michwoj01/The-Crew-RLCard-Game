@@ -1,5 +1,6 @@
 from enum import Enum
-from rlcard.games.base import Card
+
+from src.rlcard.utils import Card
 
 
 class SignalType(Enum):

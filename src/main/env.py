@@ -1,18 +1,21 @@
-import numpy as np
 from collections import OrderedDict
-from game import CrewGame
-from rlcard.envs import Env
+
+import numpy as np
+
 from action_event import ActionEvent
-from src.bridge.judger import Judger
+from game import CrewGame
+from src.main.judger import Judger
+from src.rlcard.envs import Env
 
 
 class CrewEnv(Env):
     def __init__(self, config):
         self.name = 'crew'
         self.skip_signals = config['skip_signals'] if 'skip_signals' in config else False
-        self.game = CrewGame(config['num_players'], config['no_tasks'], config['seed'], config['fixed_tasks'], self.skip_signals)
-        self.judger: Judger = Judger(game=self.game)
-        super().__init__(config=config)
+        game = CrewGame(config['num_players'], config['no_tasks'], config['seed'], config['fixed_tasks'],
+                        self.skip_signals)
+        self.judger: Judger = Judger(game=game)
+        super().__init__(game=game, config=config)
         state_shape_size = self.get_state_shape_size()
         self.state_shape = [[1, state_shape_size]
                             for _ in range(self.num_players)]
