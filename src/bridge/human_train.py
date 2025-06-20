@@ -1,16 +1,14 @@
-from rlcard.envs.registration import register
-import rlcard
-from rlcard.utils import set_seed
-from rlcard.agents import RandomAgent
-
-from src.bridge.human_player import HumanAgent
+from src.bridge.human_agent import HumanAgent
+from src.rlcard.agents import RandomAgent
+from src.rlcard.envs import register, make
+from src.rlcard.utils import set_seed
 
 register(
     env_id='crew',
     entry_point='env:CrewEnv',
 )
 
-env = rlcard.make('crew', config={
+env = make('crew', config={
     'num_players': 4,
     'no_tasks': 2,
     'seed': 42,

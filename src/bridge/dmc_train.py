@@ -1,8 +1,9 @@
-import os
 import argparse
-import rlcard
-from rlcard.agents.dmc_agent import DMCTrainer
-from rlcard.envs.registration import register
+import os
+
+from src.rlcard.agents import DMCTrainer
+from src.rlcard.envs import register, make
+
 
 def train(args):
     register(
@@ -10,7 +11,7 @@ def train(args):
         entry_point='env:CrewEnv',
     )
 
-    env = rlcard.make('crew', config={
+    env = make('crew', config={
         'num_players': args.num_players,
         'no_tasks': args.no_tasks,
         'seed': args.seed,
@@ -22,8 +23,8 @@ def train(args):
     trainer = DMCTrainer(
         env=env,
         cuda=args.cuda,
-        xpid=args.xpid,
-        savedir=args.save_dir,
+        x_pid=args.x_pid,
+        save_dir=args.save_dir,
         total_frames=args.total_frames,
         training_device=args.training_device,
         num_actors=args.num_actors,
@@ -42,7 +43,7 @@ if __name__ == '__main__':
     parser.add_argument('--cuda', type=str, default='')
     parser.add_argument('--training_device', type=str, default='0')
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--xpid', type=str, default='crew_dmc')
+    parser.add_argument('--x_pid', type=str, default='crew_dmc')
     parser.add_argument('--save_dir', type=str, default='experiments/dmc_result')
     parser.add_argument('--total_frames', type=int, default=5_000_000)
     parser.add_argument('--num_actors', type=int, default=4)
