@@ -3,30 +3,37 @@ from game import CrewGame
 from rlcard.envs import Env
 from action_event import ActionEvent
 from src.bridge.judger import Judger
-
+import numpy as np
 
 class CrewEnv(Env):
     def __init__(self, config):
         self.name = 'crew'
         self.skip_signals = config['skip_signals'] if 'skip_signals' in config else False
+        self.algorithm = config['algorithm']
         self.game = CrewGame(config['num_players'], config['no_tasks'], config['seed'], config['fixed_tasks'], self.skip_signals)
         self.judger: Judger = Judger(game=self.game)
         super().__init__(config=config)
-        self.state_shape = (40, 15)
+        self.state_shape = [(40, 11 if self.skip_signals else 15) for _ in range(config['num_players'])]
+        self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(config['num_players'])]
 
     def get_payoffs(self):
         game = self.game
-        payoffs = game.round.payoffs
         all_tasks_taken = True
         for task in game.round.tasks:
             if not task.taken or task.owner != task.taker:
                 all_tasks_taken = False
                 break
-        for player_payoff in payoffs:
-            if all_tasks_taken:
-                player_payoff[-1] = 1
-            else:
-                player_payoff[-1] = -1
+        if self.algorithm != 'dmc':
+            payoffs = game.round.payoffs
+            for player_payoff in payoffs:
+                if all_tasks_taken:
+                    player_payoff[-1] = 1
+                else:
+                    player_payoff[-1] = -1
+        elif all_tasks_taken:
+            payoffs = [1 for _ in range(game.get_num_players())]
+        else:
+            payoffs = [-1 for _ in range(game.get_num_players())]
         return payoffs
 
     def _extract_state(self, state):
@@ -36,7 +43,7 @@ class CrewEnv(Env):
         raw_legal_actions = list(legal_actions.keys())
         current_player_id = game.get_player_id()
 
-        obs = [[0 for _ in range(15)] for _ in range(40)]
+        obs = [[0 for _ in range(11 if self.skip_signals else 15)] for _ in range(40)]
 
         if not game.is_over():
             for card in game.round.players[current_player_id].hand:
@@ -61,12 +68,13 @@ class CrewEnv(Env):
                 player_id = task.owner
                 card_id = task.card.card_id
                 obs[card_id][7 + player_id] = 1
-            for player in game.round.players:
-                if player.signal:
-                    card_id = player.signal[0].card_id
-                    obs[card_id][11 + player.player_id] = 1
+            if not self.skip_signals:
+                for player in game.round.players:
+                    if player.signal:
+                        card_id = player.signal[0].card_id
+                        obs[card_id][11 + player.player_id] = 1
 
-        extracted_state['obs'] = obs
+        extracted_state['obs'] = np.array(obs, dtype=np.float32)
         extracted_state['legal_actions'] = legal_actions
         extracted_state['raw_legal_actions'] = raw_legal_actions
         return extracted_state

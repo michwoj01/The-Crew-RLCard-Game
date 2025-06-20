@@ -1,6 +1,5 @@
 
 from rlcard.utils import (
-    Logger,
     plot_curve,
 )
 
