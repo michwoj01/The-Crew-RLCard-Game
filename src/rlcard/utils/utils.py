@@ -1,26 +1,20 @@
+import random
+
 import numpy as np
+import torch
 
 from src.rlcard.utils.base import Card
 
 
 def set_seed(seed):
     if seed is not None:
-        import subprocess
-        import sys
-
-        reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
-        installed_packages = [r.decode().split('==')[0] for r in reqs.split()]
-        if 'torch' in installed_packages:
-            import torch
-            torch.backends.cudnn.deterministic = True
-            torch.manual_seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.manual_seed(seed)
         np.random.seed(seed)
-        import random
         random.seed(seed)
 
 
 def get_device():
-    import torch
     if torch.cuda.is_available():
         device = torch.device("cuda:0")
         print("--> Running on the GPU")
@@ -51,7 +45,7 @@ def rank2int(rank):
     if rank == '':
         return -1
     elif rank.isdigit():
-        if int(rank) >= 2 and int(rank) <= 10:
+        if 2 <= int(rank) <= 10:
             return int(rank)
         else:
             return None

@@ -104,8 +104,6 @@ class DQNAgent(object):
 
     def train(self):
         state_batch, action_batch, reward_batch, next_state_batch, done_batch, legal_actions_batch = self.memory.sample()
-
-        # Calculate best next actions using Q-network (Double DQN)
         q_values_next = self.q_estimator.predict_nograd(next_state_batch)
         legal_actions = []
         for b in range(self.batch_size):
@@ -280,7 +278,7 @@ class Estimator(object):
 
 class EstimatorNetwork(nn.Module):
 
-    def __init__(self, num_actions, state_shape, mlp_layers=[128, 128]):
+    def __init__(self, num_actions: int, state_shape, mlp_layers=[128, 128]):
         super().__init__()
         self.num_actions = num_actions
         self.state_shape = state_shape

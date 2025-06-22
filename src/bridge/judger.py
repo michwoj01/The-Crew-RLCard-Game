@@ -22,9 +22,9 @@ class Judger:
                 for card in self.game.round.dealer.tasks:
                     legal_actions.append(ChooseTaskAction(card=card))
             case 'signaling':
-                legal_actions.append(SkipSignalAction())
                 current_player = self.game.round.get_current_player()
                 if current_player.can_signal():
+                    legal_actions.append(SkipSignalAction())
                     hand = current_player.hand
                     suits = {card.suit for card in hand}
                     for suit in suits:
@@ -43,6 +43,8 @@ class Judger:
                                 SignalAction(
                                     card=max(cards_of_suit, key=lambda c: c.rank),
                                     signal_type=SignalType.HIGHEST))
+                else:
+                    raise ValueError("Current player cannot signal.")
             case 'playing card':
                 current_player = self.game.round.get_current_player()
                 trick_moves = self.game.round.get_trick_moves()
