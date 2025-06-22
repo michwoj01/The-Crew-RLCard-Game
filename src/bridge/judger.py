@@ -1,8 +1,8 @@
 from typing import List
+from typing import TYPE_CHECKING
+
 from action_event import ActionEvent, PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
 from card import CrewCard, SignalType
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from game import CrewGame
@@ -13,7 +13,7 @@ class Judger:
     def __init__(self, game: 'CrewGame'):
         self.game: CrewGame = game
 
-    def get_legal_actions(self) -> List[ActionEvent]:
+    def get_legal_actions(self) -> list[int]:
         legal_actions: List[ActionEvent] = []
         match self.game.round.round_phase:
             case 'game over':
@@ -57,4 +57,4 @@ class Judger:
                         legal_cards = cards_of_led_suit
                 for card in legal_cards:
                     legal_actions.append(PlayCardAction(card=card))
-        return legal_actions
+        return list(map(lambda action: action.action_id, legal_actions))

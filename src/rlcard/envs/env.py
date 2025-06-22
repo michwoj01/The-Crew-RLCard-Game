@@ -1,5 +1,6 @@
 import numpy as np
 
+from src.bridge.action_event import ActionEvent
 from src.rlcard.utils import seeding
 
 
@@ -25,12 +26,10 @@ class Env(object):
         self.action_recorder = []
         return self._extract_state(state), player_id
 
-    def step(self, action, raw_action=False):
-        if not raw_action:
-            action = self._decode_action(action)
+    def step(self, action_id: int):
+        action = self._decode_action(action_id)
 
         self.timestep += 1
-        # Record the action for human interface
         self.action_recorder.append((self.get_player_id(), action))
         next_state, player_id = self.game.step(action)
 
@@ -60,14 +59,14 @@ class Env(object):
         while not self.is_over():
             # Agent plays
             if not is_training:
-                action, _ = self.agents[player_id].eval_step(state)
+                action_id, _ = self.agents[player_id].eval_step(state)
             else:
-                action = self.agents[player_id].step(state)
+                action_id = self.agents[player_id].step(state)
 
             # Environment steps
-            next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
+            next_state, next_player_id = self.step(action_id)
             # Save action
-            trajectories[player_id].append(action)
+            trajectories[player_id].append(action_id)
 
             # Set the state and player
             state = next_state
@@ -76,7 +75,6 @@ class Env(object):
             # Save state.
             if not self.game.is_over():
                 trajectories[player_id].append(state)
-
         # Add a final state to all the players
         for player_id in range(self.num_players):
             state = self.get_state(player_id)
@@ -116,7 +114,7 @@ class Env(object):
     def _extract_state(self, state):
         raise NotImplementedError
 
-    def _decode_action(self, action_id):
+    def _decode_action(self, action_id: int) -> ActionEvent:
         raise NotImplementedError
 
     def _get_legal_actions(self):

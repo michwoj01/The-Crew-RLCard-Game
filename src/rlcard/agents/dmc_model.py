@@ -89,7 +89,7 @@ class DMCAgent:
         action = action_keys[action_idx]
 
         info = {}
-        info['values'] = {state['raw_legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}
+        info['values'] = {state['legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}
 
         return action, info
 
@@ -106,22 +106,20 @@ class DMCAgent:
         # Prepare obs and actions
         obs = state['obs'].astype(np.float32)
         legal_actions = state['legal_actions']
-        action_keys = np.array(list(legal_actions.keys()))
-        action_values = list(legal_actions.values())
+        action_values = list()
         # One-hot encoding if there is no action features
         for i in range(len(action_values)):
-            if action_values[i] is None:
-                action_values[i] = np.zeros(self.action_shape[0])
-                action_values[i][action_keys[i]] = 1
+            action_values.append(np.zeros(self.action_shape[0]))
+            action_values[i][legal_actions[i]] = 1
         action_values = np.array(action_values, dtype=np.float32)
 
-        obs = np.repeat(obs[np.newaxis, :], len(action_keys), axis=0)
+        obs = np.repeat(obs[np.newaxis, :], len(legal_actions), axis=0)
 
         # Predict Q values
         values = self.net.forward(torch.from_numpy(obs).to(self.device),
                                   torch.from_numpy(action_values).to(self.device))
 
-        return action_keys, values.cpu().detach().numpy()
+        return legal_actions, values.cpu().detach().numpy()
 
     def forward(self, obs, actions):
         return self.net.forward(obs, actions)

@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 
 from action_event import ActionEvent
@@ -43,8 +41,7 @@ class CrewEnv(Env):
     def _extract_state(self, state):
         game = self.game
         extracted_state = {}
-        legal_actions: OrderedDict = self.get_legal_actions()
-        raw_legal_actions = list(legal_actions.keys())
+        legal_actions = self.get_legal_actions()
         current_player_id = game.get_player_id()
 
         obs = [[0 for _ in range(11 if self.skip_signals else 15)] for _ in range(40)]
@@ -80,13 +77,10 @@ class CrewEnv(Env):
 
         extracted_state['obs'] = np.array(obs, dtype=np.float32)
         extracted_state['legal_actions'] = legal_actions
-        extracted_state['raw_legal_actions'] = raw_legal_actions
         return extracted_state
 
-    def _decode_action(self, action_id):
+    def _decode_action(self, action_id: int):
         return ActionEvent.from_action_id(action_id=action_id)
 
     def get_legal_actions(self):
-        legal_actions = self.judger.get_legal_actions()
-        legal_actions_ids = {action_event.action_id: None for action_event in legal_actions}
-        return OrderedDict(legal_actions_ids)
+        return self.judger.get_legal_actions()
