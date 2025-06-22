@@ -13,7 +13,7 @@ class Judger:
     def __init__(self, game: 'CrewGame'):
         self.game: CrewGame = game
 
-    def get_legal_actions(self) -> list[int]:
+    def get_legal_actions(self) -> List[ActionEvent]:
         legal_actions: List[ActionEvent] = []
         match self.game.round.round_phase:
             case 'game over':
@@ -44,7 +44,7 @@ class Judger:
                                     card=max(cards_of_suit, key=lambda c: c.rank),
                                     signal_type=SignalType.HIGHEST))
                 else:
-                    raise ValueError("Current player cannot signal.")
+                    raise ValueError(f"Player {current_player.player_id} cannot signal, but was chosen for.")
             case 'playing card':
                 current_player = self.game.round.get_current_player()
                 trick_moves = self.game.round.get_trick_moves()
@@ -59,4 +59,4 @@ class Judger:
                         legal_cards = cards_of_led_suit
                 for card in legal_cards:
                     legal_actions.append(PlayCardAction(card=card))
-        return list(map(lambda action: action.action_id, legal_actions))
+        return legal_actions

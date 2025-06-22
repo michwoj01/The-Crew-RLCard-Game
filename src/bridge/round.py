@@ -107,11 +107,12 @@ class Round:
                 elif trick_card.suit == CrewCard.trump_suit:
                     leading_card = trick_card
                     trick_winner = trick_player
-            self.current_player_id = self.starting_player_id = trick_winner
+            self.starting_player_id = trick_winner
+            self.current_player_id = self.starting_player_id
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
             if not self.skip_signals and self.signal_counter < 4:
                 self.signaling_phase = True
-                while self.players[self.current_player_id].signal:
+                while self.players[self.current_player_id].signal is not None:
                     self.current_player_id = (self.current_player_id + 1) % 4
             self.play_card_count = 0
             self.trick_count += 1
@@ -131,13 +132,15 @@ class Round:
             self.signaling_phase = False
             self.current_player_id = self.starting_player_id
         else:
-            while True:
+            for _ in range(4):
                 self.current_player_id = (self.current_player_id + 1) % 4
-                if not self.players[self.current_player_id].signal:
-                    break
-                elif self.current_player_id == self.starting_player_id:
+                if self.current_player_id == self.starting_player_id:
                     self.signaling_phase = False
                     break
+                if self.players[self.current_player_id].signal is None:
+                    break
+            else:
+                raise Exception("All players have signals, but signaling phase is not over.")
 
     def choose_task(self, action: ChooseTaskAction):
         self.move_sheet.append(ChooseTaskMove(self.current_player_id, action))

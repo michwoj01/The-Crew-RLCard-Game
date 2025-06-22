@@ -66,7 +66,7 @@ class DQNAgent(object):
 
     def feed(self, ts):
         (state, action, reward, next_state, done) = tuple(ts)
-        self.feed_memory(state['obs'], action, reward, next_state['obs'], next_state['legal_actions'],
+        self.feed_memory(state['obs'], action, reward, next_state['obs'], list(next_state['legal_actions'].keys()),
                          done)
         self.total_t += 1
         tmp = self.total_t - self.replay_memory_init_size
@@ -76,7 +76,7 @@ class DQNAgent(object):
     def step(self, state):
         q_values = self.predict(state)
         epsilon = self.epsilons[min(self.total_t, self.epsilon_decay_steps - 1)]
-        legal_actions = state['legal_actions']
+        legal_actions = list(state['legal_actions'].keys())
         probs = np.ones(len(legal_actions), dtype=float) * epsilon / len(legal_actions)
         best_action_idx = legal_actions.index(np.argmax(q_values))
         probs[best_action_idx] += (1.0 - epsilon)
@@ -87,23 +87,25 @@ class DQNAgent(object):
     def eval_step(self, state):
         q_values = self.predict(state)
         best_action = np.argmax(q_values)
-        legal_actions = state['legal_actions']
+
         info = {
-            'values': {legal_actions[i]: float(q_values[legal_actions[i]]) for i in
-                       range(len(legal_actions))}}
+            'values': {state['raw_legal_actions'][i]: float(q_values[list(state['legal_actions'].keys())[i]]) for i in
+                       range(len(state['legal_actions']))}}
 
         return best_action, info
 
     def predict(self, state):
         q_values = self.q_estimator.predict_nograd(np.expand_dims(state['obs'], 0))[0]
         masked_q_values = -np.inf * np.ones(self.num_actions, dtype=float)
-        legal_actions = state['legal_actions']
+        legal_actions = list(state['legal_actions'].keys())
         masked_q_values[legal_actions] = q_values[legal_actions]
 
         return masked_q_values
 
     def train(self):
         state_batch, action_batch, reward_batch, next_state_batch, done_batch, legal_actions_batch = self.memory.sample()
+
+        # Calculate best next actions using Q-network (Double DQN)
         q_values_next = self.q_estimator.predict_nograd(next_state_batch)
         legal_actions = []
         for b in range(self.batch_size):
@@ -278,7 +280,7 @@ class Estimator(object):
 
 class EstimatorNetwork(nn.Module):
 
-    def __init__(self, num_actions: int, state_shape, mlp_layers=[128, 128]):
+    def __init__(self, num_actions, state_shape, mlp_layers=[128, 128]):
         super().__init__()
         self.num_actions = num_actions
         self.state_shape = state_shape

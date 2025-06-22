@@ -80,7 +80,7 @@ class MCTS:
 
         visits = [(act_id, node.visits) for act_id, node in self.root.children.items()]
         if not visits:
-            legal_actions = state['legal_actions']
+            legal_actions = list(state['legal_actions'].keys())
             return random.choice(legal_actions)
         visits.sort(key=lambda x: x[1], reverse=True)
         best_action_id = visits[0][0]
@@ -100,7 +100,7 @@ class MCTSAgent:
         self.use_raw = False
 
     def step(self, state):
-        legal_actions = state.get('legal_actions', state.get('raw_legal_actions'))
+        legal_actions = state['raw_legal_actions']
         if len(legal_actions) == 1:
             return legal_actions[0]
         action_id = self.mcts.run(state)

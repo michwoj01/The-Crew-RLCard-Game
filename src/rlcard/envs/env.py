@@ -1,6 +1,5 @@
 import numpy as np
 
-from src.bridge.action_event import ActionEvent
 from src.rlcard.utils import seeding
 
 
@@ -75,6 +74,7 @@ class Env(object):
             # Save state.
             if not self.game.is_over():
                 trajectories[player_id].append(state)
+
         # Add a final state to all the players
         for player_id in range(self.num_players):
             state = self.get_state(player_id)
@@ -114,7 +114,7 @@ class Env(object):
     def _extract_state(self, state):
         raise NotImplementedError
 
-    def _decode_action(self, action_id: int) -> ActionEvent:
+    def _decode_action(self, action_id):
         raise NotImplementedError
 
     def _get_legal_actions(self):

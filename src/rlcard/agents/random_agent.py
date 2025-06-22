@@ -9,14 +9,14 @@ class RandomAgent(object):
 
     @staticmethod
     def step(state):
-        return np.random.choice(state['legal_actions'])
+        return np.random.choice(list(state['legal_actions'].keys()))
 
     def eval_step(self, state):
-        legal_actions = state['legal_actions']
         probs = [0 for _ in range(self.num_actions)]
-        for i in legal_actions:
-            probs[i] = 1 / len(legal_actions)
-        info = {'probs': {legal_actions[i]: probs[legal_actions[i]] for i in
-                          range(len(legal_actions))}}
+        for i in state['legal_actions']:
+            probs[i] = 1 / len(state['legal_actions'])
+
+        info = {'probs': {state['raw_legal_actions'][i]: probs[list(state['legal_actions'].keys())[i]] for i in
+                          range(len(state['legal_actions']))}}
 
         return self.step(state), info

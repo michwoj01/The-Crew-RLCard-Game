@@ -106,7 +106,7 @@ class NFSPAgent(object):
 
     def step(self, state):
         obs = state['obs']
-        legal_actions = state['legal_actions']
+        legal_actions = list(state['legal_actions'].keys())
         if self._mode == 'best_response':
             action = self._rl_agent.step(state)
             one_hot = np.zeros(self._num_actions)
@@ -125,13 +125,13 @@ class NFSPAgent(object):
             action, info = self._rl_agent.eval_step(state)
         elif self.evaluate_with == 'average_policy':
             obs = state['obs']
-            legal_actions = state['legal_actions']
+            legal_actions = list(state['legal_actions'].keys())
             probs = self._act(obs)
             probs = remove_illegal(probs, legal_actions)
             action = np.random.choice(len(probs), p=probs)
             info = {
-                'probs': {legal_actions[i]: float(probs[legal_actions[i]]) for i in
-                          range(len(legal_actions))}}
+                'probs': {state['raw_legal_actions'][i]: float(probs[list(state['legal_actions'].keys())[i]]) for i in
+                          range(len(state['legal_actions']))}}
         else:
             raise ValueError("'evaluate_with' should be either 'average_policy' or 'best_response'.")
         return action, info
