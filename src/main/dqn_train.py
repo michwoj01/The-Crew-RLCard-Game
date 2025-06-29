@@ -1,5 +1,5 @@
 import argparse
-import os
+import time
 
 import numpy as np
 import torch
@@ -11,6 +11,8 @@ from src.rlcard.utils import set_seed, Logger, plot_curve, reorganize, tournamen
 
 
 def train(args):
+    device = get_device()
+    print("Using device:", device)
     set_seed(args.seed)
 
     register(
@@ -26,7 +28,6 @@ def train(args):
         'skip_signals': args.skip_signals,
         'algorithm': args.algorithm
     })
-    device = get_device()
 
     if args.algorithm == 'dqn':
         if args.load_checkpoint_path:
@@ -85,6 +86,7 @@ def train(args):
 
     # Start training
     with Logger(args.save_path) as logger:
+        start_time = time.time()
         for episode in range(1, args.num_episodes + 1):
             trajectories, payoffs = env.run(is_training=True)
             trajectories = reorganize(trajectories, payoffs)
@@ -96,6 +98,9 @@ def train(args):
             if episode % args.evaluate_every == 0:
                 performance = tournament(env, args.num_eval_games)
                 logger.log_performance(episode, np.mean(performance))
+                elapsed = time.time() - start_time
+                print(f"Epoki {episode - 999}–{episode} ukończone w {elapsed:.2f} s")
+                start_time = time.time()
 
     model_file = f'dqn_model_player.pth'
     agent.save_checkpoint(args.save_path, model_file)
@@ -106,7 +111,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # training parameters
-    parser.add_argument('--cuda', type=str, default='')
     parser.add_argument('--num_episodes', type=int, default=100_000)
     parser.add_argument('--num_eval_games', type=int, default=200)
     parser.add_argument('--evaluate_every', type=int, default=1000)
@@ -148,5 +152,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
     train(args)

@@ -18,7 +18,7 @@ def get_device():
         device = torch.device("mps")
         print("--> Running on the MPS (Apple Silicon) GPU")
     elif torch.cuda.is_available():
-        device = torch.device("cuda:0")
+        device = torch.device("cuda")
         print("--> Running on the GPU")
     else:
         device = torch.device("cpu")
