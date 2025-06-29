@@ -87,7 +87,6 @@ def train(args):
     with Logger(args.save_path) as logger:
         for episode in range(1, args.num_episodes + 1):
             trajectories, payoffs = env.run(is_training=True)
-            print(f'Episode {episode} finished with payoffs: {payoffs}')
             trajectories = reorganize(trajectories, payoffs)
 
             for player_id, trajectory in enumerate(trajectories):
@@ -114,15 +113,15 @@ if __name__ == '__main__':
     parser.add_argument("--load_checkpoint_path", type=str, default="")
 
     # DQN agent parameters
-    parser.add_argument('--replay_memory_size', type=int, default=10_000)
-    parser.add_argument('--replay_memory_init_size', type=int, default=1000)
+    parser.add_argument('--replay_memory_size', type=int, default=5_000)
+    parser.add_argument('--replay_memory_init_size', type=int, default=500)
     parser.add_argument('--update_target_estimator_every', type=int, default=10_000)
     parser.add_argument('--discount_factor', type=int, default=0.99)
-    parser.add_argument('--epsilon_start', type=float, default=0.3)
-    parser.add_argument('--epsilon_end', type=float, default=0.01)
-    parser.add_argument('--epsilon_decay_steps', type=int, default=300_000)
+    parser.add_argument('--epsilon_start', type=float, default=0.2)
+    parser.add_argument('--epsilon_end', type=float, default=0.05)
+    parser.add_argument('--epsilon_decay_steps', type=int, default=100_000)
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--train_every', type=int, default=1)
+    parser.add_argument('--train_every', type=int, default=2)
     parser.add_argument('--mlp_layers', nargs='+', type=int, default=[128, 128])
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--save_path', type=str, default='experiments/')
