@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 
 import numpy as np
 import torch
@@ -85,6 +86,7 @@ def train(args):
 
     # Start training
     with Logger(args.save_path) as logger:
+        start_time = time.time()
         for episode in range(1, args.num_episodes + 1):
             trajectories, payoffs = env.run(is_training=True)
             trajectories = reorganize(trajectories, payoffs)
@@ -96,6 +98,9 @@ def train(args):
             if episode % args.evaluate_every == 0:
                 performance = tournament(env, args.num_eval_games)
                 logger.log_performance(episode, np.mean(performance))
+                elapsed = time.time() - start_time
+                print(f"Epoki {episode - 999}–{episode} ukończone w {elapsed:.2f} s")
+                start_time = time.time()
 
     model_file = f'dqn_model_player.pth'
     agent.save_checkpoint(args.save_path, model_file)
@@ -142,8 +147,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=1)
-    parser.add_argument("--fixed_tasks", type=bool, default=False)
+    parser.add_argument("--no_tasks", type=int, default=2)
+    parser.add_argument("--fixed_tasks", type=bool, default=True)
     parser.add_argument("--skip_signals", type=bool, default=False)
 
     args = parser.parse_args()
