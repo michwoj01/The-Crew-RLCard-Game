@@ -2,32 +2,23 @@ import copy
 import math
 import random
 
+
 class TreeNode:
-    def __init__(self, parent, prior_prob):
+    def __init__(self, parent, env):
         self.parent = parent
         self.children = {}
         self.visits = 0
         self.value = 0
-        self.prior = prior_prob
+        self.env = env
 
-    def expand(self, action_priors):
-        for action_id, prob in action_priors:
-            if action_id not in self.children:
-                self.children[action_id] = TreeNode(self, prob)
-
-    def select(self, c_puct):
-        best_action, best_node = None, None
-        best_score = -float('inf')
-        for action_id, child in self.children.items():
-            u = (c_puct * child.prior *
-                 math.sqrt(self.visits + 1e-8) / (1 + child.visits))
-            q = child.value / (child.visits + 1e-8)
-            score = q + u
-            if score > best_score:
-                best_score = score
-                best_action = action_id
-                best_node = child
-        return best_action, best_node
+    def expand(self, env):
+        legal_actions = list(env.get_legal_actions().keys())
+        unexplored_actions = list(set(legal_actions) - set(self.children.keys()))
+        action_id = random.choice(unexplored_actions)
+        new_env = copy.deepcopy(env)
+        new_env.step(action_id)
+        self.children[action_id] = TreeNode(self, new_env)
+        return self.children[action_id]
 
     def update(self, leaf_value):
         self.visits += 1
@@ -38,47 +29,52 @@ class TreeNode:
             self.parent.update_recursive(leaf_value)
         self.update(leaf_value)
 
-    def is_leaf(self):
-        return len(self.children) == 0
-
-    def is_root(self):
-        return self.parent is None
-
-class MCTS:
-    def __init__(self, env, c_puct=1.4, n_simulations=100):
-        self.root = TreeNode(parent=None, prior_prob=1.0)
-        self.c_puct = c_puct
-        self.n_simulations = n_simulations
-        self.env = env
-
-    def _simulate(self, env_copy):
-        while not env_copy.game.is_over():
-            legal_actions = env_copy.get_legal_actions()
+    def simulate(self):
+        simulation_env_copy = copy.deepcopy(self.env)
+        while not simulation_env_copy.game.is_over():
+            legal_actions = simulation_env_copy.get_legal_actions()
             if not legal_actions:
                 break
-            action = random.choice(legal_actions)
-            env_copy.step(action)
-        payoffs = env_copy.get_payoffs()
-        return payoffs
+            action = random.choice(list(legal_actions.keys()))
+            simulation_env_copy.step(action)
+        payoffs = simulation_env_copy.get_payoffs()
+        return sum(payoffs[self.env.get_player_id()][:-1])
 
-    def _rollout(self, env_copy, node):
-        if node.is_leaf():
-            payoffs = self._simulate(env_copy)
-            return payoffs[self.env.get_player_id()]
-        else:
-            action_id, next_node = node.select(self.c_puct)
-            env_copy.step(action_id)
-            leaf_value = self._rollout(env_copy, next_node)
-            next_node.update_recursive(leaf_value)
-            return leaf_value
+
+class MCTS:
+    def __init__(self, env, n_simulations=100):
+        self.n_simulations = n_simulations
+        self.env = env
+        self.all_visits = 0
 
     def run(self, state):
-        self.root = TreeNode(parent=None, prior_prob=1.0)
+        env_copy = copy.deepcopy(self.env)
+        root = TreeNode(parent=None, env=env_copy)
+        extendable_leafs = [root]
         for _ in range(self.n_simulations):
-            env_copy = copy.deepcopy(self.env)
-            self._rollout(env_copy, self.root)
+            best_node = None
+            best_score = -float('inf')
+            if self.all_visits == 0:
+                best_node = root
+            else:
+                for leaf in extendable_leafs:
+                    exploration_factor = math.sqrt((2 * math.log(self.all_visits, math.e)) / leaf.visits)
+                    score = leaf.value + exploration_factor
+                    if score > best_score:
+                        best_score = score
+                        best_node = leaf
 
-        visits = [(act_id, node.visits) for act_id, node in self.root.children.items()]
+            new_node = best_node.expand(best_node.env)
+            leaf_value = new_node.simulate()
+            new_node.update_recursive(leaf_value)
+            self.all_visits += 1
+
+            if not new_node.env.game.is_over():
+                extendable_leafs.append(new_node)
+            if len(list(set(best_node.env.get_legal_actions().keys()) - set(best_node.children.keys()))) == 0:
+                extendable_leafs.remove(best_node)
+
+        visits = [(act_id, node.visits) for act_id, node in root.children.items()]
         if not visits:
             legal_actions = list(state['legal_actions'].keys())
             return random.choice(legal_actions)
@@ -86,17 +82,11 @@ class MCTS:
         best_action_id = visits[0][0]
         return best_action_id
 
-    def update_with_action(self, last_action_id):
-        if last_action_id in self.root.children:
-            self.root = self.root.children[last_action_id]
-            self.root.parent = None
-        else:
-            self.root = TreeNode(parent=None, prior_prob=1.0)
 
 class MCTSAgent:
-    def __init__(self, env, n_simulations=100, c_puct=1.4):
+    def __init__(self, env, n_simulations=100):
         self.env = env
-        self.mcts = MCTS(env, c_puct=c_puct, n_simulations=n_simulations)
+        self.mcts = MCTS(env, n_simulations=n_simulations)
         self.use_raw = False
 
     def step(self, state):
