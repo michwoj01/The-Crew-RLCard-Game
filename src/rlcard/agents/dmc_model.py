@@ -24,9 +24,9 @@ class CardwiseDMCNet(nn.Module):
         self.fc_layers = nn.Sequential(*layers)
 
     def forward(self, obs, actions):
-        B = obs.size(0)
+        b = obs.size(0)
         cards_encoded = self.card_encoder(obs)
-        obs_flat = cards_encoded.view(B, -1)
+        obs_flat = cards_encoded.view(b, -1)
         x = torch.cat((obs_flat, actions), dim=1)
         return self.fc_layers(x).flatten()
 
@@ -88,8 +88,7 @@ class DMCAgent:
         action_idx = np.argmax(values)
         action = action_keys[action_idx]
 
-        info = {}
-        info['values'] = {state['raw_legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}
+        info = {'values': {state['raw_legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}}
 
         return action, info
 
@@ -143,7 +142,7 @@ class DMCModel:
             action_shape,
             mlp_layers=[512, 512, 512, 512, 512],
             exp_epsilon=0.01,
-            device=0
+            device="cpu"
     ):
         self.agents = []
         for player_id in range(len(state_shape)):

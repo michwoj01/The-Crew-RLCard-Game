@@ -173,7 +173,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-src/bridge/experiments/
+src/main/experiments/
 experiments/
 
 .idea/

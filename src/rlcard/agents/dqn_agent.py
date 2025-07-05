@@ -1,3 +1,4 @@
+import os
 import random
 from collections import namedtuple
 from copy import deepcopy
@@ -154,15 +155,18 @@ class DQNAgent(object):
             'memory': self.memory.checkpoint_attributes(),
             'total_t': self.total_t,
             'train_t': self.train_t,
+            'replay_memory_init_size': self.replay_memory_init_size,
+            'update_target_estimator_every': self.update_target_estimator_every,
+            'discount_factor': self.discount_factor,
             'epsilon_start': self.epsilons.min(),
             'epsilon_end': self.epsilons.max(),
             'epsilon_decay_steps': self.epsilon_decay_steps,
-            'discount_factor': self.discount_factor,
-            'update_target_estimator_every': self.update_target_estimator_every,
             'batch_size': self.batch_size,
             'num_actions': self.num_actions,
             'train_every': self.train_every,
-            'device': self.device
+            'device': self.device,
+            'save_path': self.save_path,
+            'save_every': self.save_every
         }
 
     @classmethod
@@ -170,6 +174,7 @@ class DQNAgent(object):
         print("\nINFO - Restoring model from checkpoint...")
         agent_instance = cls(
             replay_memory_size=checkpoint['memory']['memory_size'],
+            replay_memory_init_size=checkpoint['replay_memory_init_size'],
             update_target_estimator_every=checkpoint['update_target_estimator_every'],
             discount_factor=checkpoint['discount_factor'],
             epsilon_start=checkpoint['epsilon_start'],
@@ -177,10 +182,13 @@ class DQNAgent(object):
             epsilon_decay_steps=checkpoint['epsilon_decay_steps'],
             batch_size=checkpoint['batch_size'],
             num_actions=checkpoint['num_actions'],
-            device=checkpoint['device'],
             state_shape=checkpoint['q_estimator']['state_shape'],
+            train_every=checkpoint['train_every'],
             mlp_layers=checkpoint['q_estimator']['mlp_layers'],
-            train_every=checkpoint['train_every']
+            learning_rate=checkpoint['q_estimator']['learning_rate'],
+            device=checkpoint['device'],
+            save_path=checkpoint['save_path'],
+            save_every=checkpoint['save_every'],
         )
 
         agent_instance.total_t = checkpoint['total_t']
@@ -193,7 +201,7 @@ class DQNAgent(object):
         return agent_instance
 
     def save_checkpoint(self, path, filename='checkpoint_dqn.pt'):
-        torch.save(self.checkpoint_attributes(), path + '/' + filename)
+        torch.save(self.checkpoint_attributes(), os.path.join(path, filename))
 
 
 class Estimator(object):
@@ -240,10 +248,10 @@ class Estimator(object):
         q_as = self.qnet(s)
 
         # (batch, num_actions) -> (batch, )
-        Q = torch.gather(q_as, dim=-1, index=a.unsqueeze(-1)).squeeze(-1)
+        q = torch.gather(q_as, dim=-1, index=a.unsqueeze(-1)).squeeze(-1)
 
         # update model
-        batch_loss = self.mse_loss(Q, y)
+        batch_loss = self.mse_loss(q, y)
         batch_loss.backward()
         self.optimizer.step()
         batch_loss = batch_loss.item()
@@ -325,8 +333,7 @@ class EstimatorNetwork2(nn.Module):
 
         # build the Q network
         layer_dims = [np.prod(self.state_shape)] + self.mlp_layers
-        fc = [nn.Flatten()]
-        fc.append(nn.BatchNorm1d(layer_dims[0]))
+        fc = [nn.Flatten(), nn.BatchNorm1d(layer_dims[0])]
         for i in range(len(layer_dims) - 1):
             fc.append(nn.Linear(layer_dims[i], layer_dims[i + 1], bias=True))
             fc.append(nn.Tanh())

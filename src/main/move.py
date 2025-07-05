@@ -33,7 +33,7 @@ class SignalMove(PlayerMove):
 
     @property
     def signal(self):
-        return (self.action.card, self.action.signal_type)
+        return self.action.card, self.action.signal_type
 
     def __str__(self):
         return f'{self.player_id} signals {self.action}'

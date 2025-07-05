@@ -4,7 +4,7 @@ import numpy as np
 
 from action_event import ActionEvent
 from game import CrewGame
-from src.bridge.judger import Judger
+from src.main.judger import Judger
 from src.rlcard.envs import Env
 
 

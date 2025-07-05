@@ -5,7 +5,7 @@ import time
 import numpy as np
 import torch
 
-from src.bridge.env import CrewEnv
+from src.main.env import CrewEnv
 from src.rlcard.agents import DQNAgent, NFSPAgent
 from src.rlcard.envs import register, make
 from src.rlcard.utils import set_seed, get_device, Logger, plot_curve, reorganize, tournament

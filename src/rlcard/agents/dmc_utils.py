@@ -33,7 +33,7 @@ def get_batch(
 
 
 def create_buffers(
-        T,
+        t,
         num_buffers,
         state_shape,
         action_shape,
@@ -44,11 +44,11 @@ def create_buffers(
         buffers[device] = []
         for player_id in range(len(state_shape)):
             specs = dict(
-                done=dict(size=(T,), dtype=torch.bool),
-                episode_return=dict(size=(T,), dtype=torch.float32),
-                target=dict(size=(T,), dtype=torch.float32),
-                state=dict(size=(T,) + tuple(state_shape[player_id]), dtype=torch.int8),
-                action=dict(size=(T,) + tuple(action_shape[player_id]), dtype=torch.int8),
+                done=dict(size=(t,), dtype=torch.bool),
+                episode_return=dict(size=(t,), dtype=torch.float32),
+                target=dict(size=(t,), dtype=torch.float32),
+                state=dict(size=(t,) + tuple(state_shape[player_id]), dtype=torch.int8),
+                action=dict(size=(t,) + tuple(action_shape[player_id]), dtype=torch.int8),
             )
             _buffers = {key: [] for key in specs}
             for _ in range(num_buffers):

@@ -1,4 +1,4 @@
-from src.bridge.human_agent import HumanAgent
+from src.main.human_agent import HumanAgent
 from src.rlcard.agents import RandomAgent
 from src.rlcard.envs import register, make
 from src.rlcard.utils import set_seed

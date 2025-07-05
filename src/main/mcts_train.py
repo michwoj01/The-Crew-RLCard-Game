@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from src.bridge.env import CrewEnv
+from src.main.env import CrewEnv
 from src.rlcard.agents.mcts_agent import MCTSAgent
 from src.rlcard.envs import register, make
 from src.rlcard.utils import set_seed, Logger, tournament
