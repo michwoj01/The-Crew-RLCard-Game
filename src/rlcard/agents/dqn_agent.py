@@ -67,8 +67,7 @@ class DQNAgent(object):
 
     def feed(self, ts):
         (state, action, reward, next_state, done) = tuple(ts)
-        self.feed_memory(state['obs'], action, reward, next_state['obs'], list(next_state['legal_actions'].keys()),
-                         done)
+        self.feed_memory(state['obs'], action, reward, next_state['obs'], next_state['legal_actions'], done)
         self.total_t += 1
         tmp = self.total_t - self.replay_memory_init_size
         if tmp >= 0 and tmp % self.train_every == 0:
@@ -77,7 +76,7 @@ class DQNAgent(object):
     def step(self, state):
         q_values = self.predict(state)
         epsilon = self.epsilons[min(self.total_t, self.epsilon_decay_steps - 1)]
-        legal_actions = list(state['legal_actions'].keys())
+        legal_actions = state['legal_actions']
         probs = np.ones(len(legal_actions), dtype=float) * epsilon / len(legal_actions)
         best_action_idx = legal_actions.index(np.argmax(q_values))
         probs[best_action_idx] += (1.0 - epsilon)
@@ -90,7 +89,7 @@ class DQNAgent(object):
         best_action = np.argmax(q_values)
 
         info = {
-            'values': {state['raw_legal_actions'][i]: float(q_values[list(state['legal_actions'].keys())[i]]) for i in
+            'values': {state['legal_actions'][i]: float(q_values[state['legal_actions'][i]]) for i in
                        range(len(state['legal_actions']))}}
 
         return best_action, info
@@ -98,7 +97,7 @@ class DQNAgent(object):
     def predict(self, state):
         q_values = self.q_estimator.predict_nograd(np.expand_dims(state['obs'], 0))[0]
         masked_q_values = -np.inf * np.ones(self.num_actions, dtype=float)
-        legal_actions = list(state['legal_actions'].keys())
+        legal_actions = state['legal_actions']
         masked_q_values[legal_actions] = q_values[legal_actions]
 
         return masked_q_values

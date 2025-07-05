@@ -88,7 +88,7 @@ class DMCAgent:
         action_idx = np.argmax(values)
         action = action_keys[action_idx]
 
-        info = {'values': {state['raw_legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}}
+        info = {'values': {state['legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}}
 
         return action, info
 
@@ -104,15 +104,8 @@ class DMCAgent:
     def predict(self, state):
         # Prepare obs and actions
         obs = state['obs'].astype(np.float32)
-        legal_actions = state['legal_actions']
-        action_keys = np.array(list(legal_actions.keys()))
-        action_values = list(legal_actions.values())
-        # One-hot encoding if there is no action features
-        for i in range(len(action_values)):
-            if action_values[i] is None:
-                action_values[i] = np.zeros(self.action_shape[0])
-                action_values[i][action_keys[i]] = 1
-        action_values = np.array(action_values, dtype=np.float32)
+        action_keys = np.array(state['legal_actions'])
+        action_values = np.eye(self.action_shape[0], dtype=np.float32)[action_keys]
 
         obs = np.repeat(obs[np.newaxis, :], len(action_keys), axis=0)
 

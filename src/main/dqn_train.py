@@ -1,5 +1,4 @@
 import argparse
-import os
 import time
 
 import numpy as np
@@ -8,10 +7,11 @@ import torch
 from src.main.env import CrewEnv
 from src.rlcard.agents import DQNAgent, NFSPAgent
 from src.rlcard.envs import register, make
-from src.rlcard.utils import set_seed, get_device, Logger, plot_curve, reorganize, tournament
+from src.rlcard.utils import set_seed, Logger, plot_curve, reorganize, tournament, get_device
 
 
 def train(args):
+    device = get_device()
     set_seed(args.seed)
 
     register(
@@ -27,7 +27,6 @@ def train(args):
         'skip_signals': args.skip_signals,
         'algorithm': args.algorithm
     })
-    device = get_device()
 
     if args.algorithm == 'dqn':
         if args.load_checkpoint_path:
@@ -111,22 +110,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # training parameters
-    parser.add_argument('--cuda', type=str, default='')
     parser.add_argument('--num_episodes', type=int, default=100_000)
     parser.add_argument('--num_eval_games', type=int, default=200)
     parser.add_argument('--evaluate_every', type=int, default=1000)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
 
     # DQN agent parameters
-    parser.add_argument('--replay_memory_size', type=int, default=10_000)
-    parser.add_argument('--replay_memory_init_size', type=int, default=1000)
+    parser.add_argument('--replay_memory_size', type=int, default=5_000)
+    parser.add_argument('--replay_memory_init_size', type=int, default=500)
     parser.add_argument('--update_target_estimator_every', type=int, default=10_000)
     parser.add_argument('--discount_factor', type=int, default=0.99)
-    parser.add_argument('--epsilon_start', type=float, default=0.3)
-    parser.add_argument('--epsilon_end', type=float, default=0.01)
-    parser.add_argument('--epsilon_decay_steps', type=int, default=300_000)
+    parser.add_argument('--epsilon_start', type=float, default=0.2)
+    parser.add_argument('--epsilon_end', type=float, default=0.05)
+    parser.add_argument('--epsilon_decay_steps', type=int, default=100_000)
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--train_every', type=int, default=1)
+    parser.add_argument('--train_every', type=int, default=2)
     parser.add_argument('--mlp_layers', nargs='+', type=int, default=[128, 128])
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--save_path', type=str, default='experiments/')
@@ -147,11 +145,10 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=2)
-    parser.add_argument("--fixed_tasks", type=bool, default=True)
+    parser.add_argument("--no_tasks", type=int, default=1)
+    parser.add_argument("--fixed_tasks", type=bool, default=False)
     parser.add_argument("--skip_signals", type=bool, default=False)
 
     args = parser.parse_args()
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
     train(args)

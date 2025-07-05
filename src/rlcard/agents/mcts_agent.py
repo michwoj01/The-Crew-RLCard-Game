@@ -1,6 +1,7 @@
 import copy
-import math
 import random
+
+import math
 
 
 class TreeNode:
@@ -12,8 +13,8 @@ class TreeNode:
         self.env = env
 
     def expand(self, env):
-        legal_actions = list(env.get_legal_actions().keys())
-        unexplored_actions = list(set(legal_actions) - set(self.children.keys()))
+        legal_actions = env.get_legal_actions()
+        unexplored_actions = list(set(legal_actions) - set(self.children))
         action_id = random.choice(unexplored_actions)
         new_env = copy.deepcopy(env)
         new_env.step(action_id)
@@ -35,7 +36,7 @@ class TreeNode:
             legal_actions = simulation_env_copy.get_legal_actions()
             if not legal_actions:
                 break
-            action = random.choice(list(legal_actions.keys()))
+            action = random.choice(legal_actions)
             simulation_env_copy.step(action)
         payoffs = simulation_env_copy.get_payoffs()
         return sum(payoffs[self.env.get_player_id()][:-1])
@@ -71,12 +72,12 @@ class MCTS:
 
             if not new_node.env.game.is_over():
                 extendable_leafs.append(new_node)
-            if len(list(set(best_node.env.get_legal_actions().keys()) - set(best_node.children.keys()))) == 0:
+            if len(list(set(best_node.env.get_legal_actions()) - set(best_node.children))) == 0:
                 extendable_leafs.remove(best_node)
 
         visits = [(act_id, node.visits) for act_id, node in root.children.items()]
         if not visits:
-            legal_actions = list(state['legal_actions'].keys())
+            legal_actions = state['legal_actions']
             return random.choice(legal_actions)
         visits.sort(key=lambda x: x[1], reverse=True)
         best_action_id = visits[0][0]
@@ -90,7 +91,7 @@ class MCTSAgent:
         self.use_raw = False
 
     def step(self, state):
-        legal_actions = state['raw_legal_actions']
+        legal_actions = state['legal_actions']
         if len(legal_actions) == 1:
             return legal_actions[0]
         action_id = self.mcts.run(state)

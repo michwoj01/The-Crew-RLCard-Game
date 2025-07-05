@@ -16,7 +16,7 @@ class HumanAgent(object):
         while not isinstance(action, int) or action < 0 or action >= len(state['legal_actions']):
             print('Action illegal...')
             action = int(input('>> Re-choose action (integer): '))
-        return state['raw_legal_actions'][action]
+        return state['legal_actions'][action]
 
     def eval_step(self, state):
         return self.step(state), {}
@@ -24,7 +24,7 @@ class HumanAgent(object):
 
 def _print_state(state):
     raw_obs = state['obs']
-    raw_legal_actions = state['raw_legal_actions']
+    raw_legal_actions = state['legal_actions']
 
     offset = 0
 

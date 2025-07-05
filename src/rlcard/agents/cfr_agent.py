@@ -102,17 +102,17 @@ class CFRAgent(object):
         return action_probs
 
     def eval_step(self, state):
-        probs = self.action_probs(state['obs'].tostring(), list(state['legal_actions'].keys()), self.average_policy)
+        probs = self.action_probs(state['obs'].tostring(), state['legal_actions'], self.average_policy)
         action = np.random.choice(len(probs), p=probs)
 
-        info = {'probs': {state['raw_legal_actions'][i]: float(probs[list(state['legal_actions'].keys())[i]]) for i in
+        info = {'probs': {state['legal_actions'][i]: float(probs[state['legal_actions'][i]]) for i in
                           range(len(state['legal_actions']))}}
 
         return action, info
 
     def get_state(self, player_id):
         state = self.env.get_state(player_id)
-        return state['obs'].tostring(), list(state['legal_actions'].keys())
+        return state['obs'].tostring(), state['legal_actions']
 
     def save(self):
         if not os.path.exists(self.model_path):
