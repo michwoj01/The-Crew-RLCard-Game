@@ -1,5 +1,4 @@
 import argparse
-import os
 
 from src.rlcard.agents import DMCTrainer
 from src.rlcard.envs import register, make
@@ -17,7 +16,7 @@ def train(args):
         'seed': args.seed,
         'fixed_tasks': args.fixed_tasks,
         'skip_signals': args.skip_signals,
-        'algorithm': 'dmc'
+        'algorithm': args.algorithm,
     })
 
     trainer = DMCTrainer(
@@ -40,9 +39,7 @@ def train(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cuda', type=str, default='')
     parser.add_argument('--training_device', type=str, default='0')
-    parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--x_pid', type=str, default='crew_dmc')
     parser.add_argument('--save_dir', type=str, default='experiments/dmc_result')
     parser.add_argument('--total_frames', type=int, default=5_000_000)
@@ -54,11 +51,12 @@ if __name__ == '__main__':
     parser.add_argument('--save_interval', type=int, default=30)
     parser.add_argument('--load_model', action='store_true')
 
+    parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument("--algorithm", type=str, default="dmc")
     parser.add_argument("--num_players", type=int, default=4)
     parser.add_argument("--no_tasks", type=int, default=1)
     parser.add_argument("--fixed_tasks", type=bool, default=True)
     parser.add_argument("--skip_signals", type=bool, default=False)
 
     args = parser.parse_args()
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.cuda
     train(args)

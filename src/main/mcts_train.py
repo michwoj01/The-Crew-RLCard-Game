@@ -6,7 +6,7 @@ import numpy as np
 from src.main.env import CrewEnv
 from src.rlcard.agents.mcts_agent import MCTSAgent
 from src.rlcard.envs import register, make
-from src.rlcard.utils import set_seed, Logger, tournament
+from src.rlcard.utils import set_seed, Logger
 
 
 def run_mcts(args):
@@ -32,8 +32,8 @@ def run_mcts(args):
     with Logger(args.save_path) as logger:
         for episode in range(1, args.num_episodes + 1):
             _, payoffs = env.run(is_training=False)
-            performance = tournament(env, args.num_eval_games)
-            logger.log_performance(episode, np.mean(performance))
+            print(payoffs)
+            logger.log_performance(episode, np.sum(payoffs) / 2)
 
 
 if __name__ == '__main__':
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     # environment parameters
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument("--algorithm", type=str, default="dqn")
+    parser.add_argument("--algorithm", type=str, default="mcts")
     parser.add_argument("--num_players", type=int, default=4)
     parser.add_argument("--no_tasks", type=int, default=4)
     parser.add_argument("--fixed_tasks", type=bool, default=False)

@@ -14,7 +14,7 @@ class TreeNode:
 
     def expand(self, env):
         legal_actions = env.get_legal_actions()
-        unexplored_actions = list(set(legal_actions) - set(self.children))
+        unexplored_actions = list(set(legal_actions) - set(self.children.keys()))
         action_id = random.choice(unexplored_actions)
         new_env = copy.deepcopy(env)
         new_env.step(action_id)
@@ -39,7 +39,7 @@ class TreeNode:
             action = random.choice(legal_actions)
             simulation_env_copy.step(action)
         payoffs = simulation_env_copy.get_payoffs()
-        return sum(payoffs[self.env.get_player_id()][:-1])
+        return sum(payoffs[self.env.get_player_id()])
 
 
 class MCTS:
@@ -52,29 +52,10 @@ class MCTS:
         env_copy = copy.deepcopy(self.env)
         root = TreeNode(parent=None, env=env_copy)
         extendable_leafs = [root]
-        for _ in range(self.n_simulations):
-            best_node = None
-            best_score = -float('inf')
-            if self.all_visits == 0:
-                best_node = root
-            else:
-                for leaf in extendable_leafs:
-                    exploration_factor = math.sqrt((2 * math.log(self.all_visits, math.e)) / leaf.visits)
-                    score = leaf.value + exploration_factor
-                    if score > best_score:
-                        best_score = score
-                        best_node = leaf
-
-            new_node = best_node.expand(best_node.env)
-            leaf_value = new_node.simulate()
-            new_node.update_recursive(leaf_value)
-            self.all_visits += 1
-
-            if not new_node.env.game.is_over():
-                extendable_leafs.append(new_node)
-            if len(list(set(best_node.env.get_legal_actions()) - set(best_node.children))) == 0:
-                extendable_leafs.remove(best_node)
-
+        self.all_visits = 0
+        for i in range(self.n_simulations):
+            if not self.find_best_node(root, extendable_leafs):
+                break
         visits = [(act_id, node.visits) for act_id, node in root.children.items()]
         if not visits:
             legal_actions = state['legal_actions']
@@ -83,6 +64,30 @@ class MCTS:
         best_action_id = visits[0][0]
         return best_action_id
 
+    def find_best_node(self, root: TreeNode, leafs: list[TreeNode]):
+        best_node = None
+        best_score = -float('inf')
+        if self.all_visits == 0:
+            best_node = root
+        else:
+            for leaf in leafs:
+                exploration_factor = math.sqrt((2 * math.log(self.all_visits, math.e)) / leaf.visits)
+                score = leaf.value + exploration_factor
+                if score > best_score:
+                    best_score = score
+                    best_node = leaf
+        if best_node is None:
+            return False
+        new_node = best_node.expand(best_node.env)
+        leaf_value = new_node.simulate()
+        new_node.update_recursive(leaf_value)
+        self.all_visits += 1
+
+        if not new_node.env.game.is_over():
+            leafs.append(new_node)
+        if len(list(set(best_node.env.get_legal_actions()) - set(best_node.children.keys()))) == 0:
+            leafs.remove(best_node)
+        return True
 
 class MCTSAgent:
     def __init__(self, env, n_simulations=100):
