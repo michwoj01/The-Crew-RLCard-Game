@@ -1,5 +1,6 @@
 import argparse
 import os
+import time
 
 import numpy as np
 
@@ -31,9 +32,10 @@ def run_mcts(args):
 
     with Logger(args.save_path) as logger:
         for episode in range(1, args.num_episodes + 1):
+            start_time = time.time()
             _, payoffs = env.run(is_training=False)
-            print(payoffs)
-            logger.log_performance(episode, np.sum(payoffs) / 2)
+            print(payoffs, time.time() - start_time)
+            logger.log_performance(episode, np.sum(payoffs[0]) / 2)
 
 
 if __name__ == '__main__':

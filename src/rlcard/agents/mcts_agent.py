@@ -15,6 +15,8 @@ class TreeNode:
     def expand(self, env):
         legal_actions = env.get_legal_actions()
         unexplored_actions = list(set(legal_actions) - set(self.children.keys()))
+        if not unexplored_actions:
+            raise ValueError('No unexplored actions available in the environment: {}'.format(env))
         action_id = random.choice(unexplored_actions)
         new_env = copy.deepcopy(env)
         new_env.step(action_id)
@@ -71,6 +73,8 @@ class MCTS:
             best_node = root
         else:
             for leaf in leafs:
+                if leaf.visits == 0:
+                    raise ValueError('No visits for leaf {}'.format(leaf.env))
                 exploration_factor = math.sqrt((2 * math.log(self.all_visits, math.e)) / leaf.visits)
                 score = leaf.value + exploration_factor
                 if score > best_score:
