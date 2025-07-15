@@ -42,7 +42,7 @@ class CrewEnv(Env):
     def _extract_state(self, state):
         game = self.game
         extracted_state = {}
-        legal_actions = self.get_legal_actions()
+        legal_actions = self._get_legal_actions()
         current_player_id = game.get_player_id()
 
         obs = [[0 for _ in range(11 if self.skip_signals else 15)] for _ in range(40)]
@@ -83,7 +83,19 @@ class CrewEnv(Env):
     def _decode_action(self, action_id: int):
         return ActionEvent.from_action_id(action_id=action_id)
 
-    def get_legal_actions(self):
+    def _get_legal_actions(self):
         legal_actions = self.judger.get_legal_actions()
         legal_actions_ids = [action_event.action_id for action_event in legal_actions]
         return legal_actions_ids
+
+    def clone(self) -> 'CrewEnv':
+        new_env = CrewEnv({"num_players": self.game.get_num_players(),
+                           "no_tasks": self.game.no_tasks,
+                           "seed": 42,
+                           "fixed_tasks": self.game.fixed_tasks,
+                           "skip_signals": self.skip_signals,
+                           "algorithm": self.algorithm,
+                           "allow_step_back": self.game.allow_step_back})
+        new_env.game = self.game.clone()
+        new_env.judger = Judger(game=new_env.game)
+        return new_env

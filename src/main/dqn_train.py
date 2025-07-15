@@ -6,6 +6,7 @@ import torch
 
 from src.main.env import CrewEnv
 from src.rlcard.agents import DQNAgent, NFSPAgent
+from src.rlcard.agents.mcts_agent import MCTSAgent
 from src.rlcard.envs import register, make
 from src.rlcard.utils import set_seed, Logger, plot_curve, reorganize, tournament, get_device
 
@@ -80,7 +81,9 @@ def train(args):
                 save_path=args.save_path,
                 save_every=args.save_every
             )
-    agents = [agent for _ in range(env.num_players)]
+    agents = [agent]
+    for _ in range(env.num_players - 1):
+        agents.append(MCTSAgent(env, n_simulations=args.n_simulations))
     env.set_agents(agents)
 
     # Start training
@@ -90,10 +93,8 @@ def train(args):
             trajectories, payoffs = env.run(is_training=True)
             trajectories = reorganize(trajectories, payoffs)
 
-            for player_id, trajectory in enumerate(trajectories):
-                for ts in trajectory:
-                    agents[player_id].feed(ts)
-
+            for ts in trajectories[0]:
+                agents[0].feed(ts)
             if episode % args.evaluate_every == 0:
                 performance = tournament(env, args.num_eval_games)
                 logger.log_performance(episode, np.mean(performance))
@@ -110,9 +111,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # training parameters
-    parser.add_argument('--num_episodes', type=int, default=100_000)
-    parser.add_argument('--num_eval_games', type=int, default=200)
-    parser.add_argument('--evaluate_every', type=int, default=1000)
+    parser.add_argument('--num_episodes', type=int, default=1000)
+    parser.add_argument('--num_eval_games', type=int, default=5)
+    parser.add_argument('--evaluate_every', type=int, default=20)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
 
     # DQN agent parameters
@@ -145,9 +146,10 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=1)
+    parser.add_argument("--no_tasks", type=int, default=4)
     parser.add_argument("--fixed_tasks", type=bool, default=False)
     parser.add_argument("--skip_signals", type=bool, default=False)
+    parser.add_argument("--n_simulations", type=int, default=100)
 
     args = parser.parse_args()
 

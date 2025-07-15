@@ -162,3 +162,29 @@ class Round:
                 else:
                     for player in self.players:
                         self.payoffs[player.player_id][-1] = 0.5
+
+    def clone(self) -> 'Round':
+        new_round = Round(
+            num_players=self.num_players,
+            no_tasks=len(self.dealer.tasks) + len(self.tasks),
+            np_random=self.np_random,
+            fixed_tasks=False,
+            skip_signals=self.skip_signals
+        )
+
+        new_round.current_player_id = self.current_player_id
+        new_round.starting_player_id = self.starting_player_id
+        new_round.play_card_count = self.play_card_count
+        new_round.move_sheet = [move for move in self.move_sheet]
+        new_round.impossible_to_win = self.impossible_to_win
+        new_round.signal_counter = self.signal_counter
+        new_round.signaling_phase = self.signaling_phase
+        new_round.trick_count = self.trick_count
+        new_round.card_record = self.card_record.copy()
+
+        new_round.payoffs = [payoff_list.copy() for payoff_list in self.payoffs]
+        new_round.players = [player.clone() for player in self.players]
+        new_round.tasks = [task.clone() for task in self.tasks]
+        new_round.dealer = self.dealer.clone()
+
+        return new_round

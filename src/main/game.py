@@ -51,3 +51,16 @@ class CrewGame:
     # stub implementation
     def get_state(self, player_id: int):
         return {}
+
+    def clone(self):
+        new_game = CrewGame(
+            num_players=self.num_players,
+            no_tasks=self.no_tasks,
+            seed=42,
+            fixed_tasks=self.fixed_tasks,
+            skip_signals=self.skip_signals
+        )
+
+        new_game.np_random.set_state(self.np_random.get_state())
+        new_game.round = self.round.clone()
+        return new_game

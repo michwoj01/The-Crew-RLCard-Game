@@ -57,3 +57,9 @@ class CrewTask:
             return True
         else:
             return False
+
+    def clone(self) -> 'CrewTask':
+        new_task = CrewTask(self.card, self.owner)
+        new_task.taken = self.taken
+        new_task.taker = self.taker
+        return new_task

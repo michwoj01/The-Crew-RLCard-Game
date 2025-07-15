@@ -23,3 +23,9 @@ class CrewPlayer:
 
     def __str__(self):
         return ['N', 'E', 'S', 'W'][self.player_id]
+
+    def clone(self) -> 'CrewPlayer':
+        new_player = CrewPlayer(player_id=self.player_id, np_random=self.np_random)
+        new_player.hand = [card for card in self.hand]
+        new_player.signal = self.signal if self.signal is None else (self.signal[0], self.signal[1])
+        return new_player

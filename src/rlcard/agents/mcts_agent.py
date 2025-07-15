@@ -1,4 +1,3 @@
-import copy
 import random
 
 import math
@@ -13,12 +12,12 @@ class TreeNode:
         self.env = env
 
     def expand(self, env):
-        legal_actions = env.get_legal_actions()
+        legal_actions = env._get_legal_actions()
         unexplored_actions = list(set(legal_actions) - set(self.children.keys()))
         if not unexplored_actions:
             raise ValueError('No unexplored actions available in the environment: {}'.format(env))
         action_id = random.choice(unexplored_actions)
-        new_env = copy.deepcopy(env)
+        new_env = env.clone()
         new_env.step(action_id)
         self.children[action_id] = TreeNode(self, new_env)
         return self.children[action_id]
@@ -33,9 +32,9 @@ class TreeNode:
         self.update(leaf_value)
 
     def simulate(self):
-        simulation_env_copy = copy.deepcopy(self.env)
+        simulation_env_copy = self.env.clone()
         while not simulation_env_copy.game.is_over():
-            legal_actions = simulation_env_copy.get_legal_actions()
+            legal_actions = simulation_env_copy._get_legal_actions()
             if not legal_actions:
                 break
             action = random.choice(legal_actions)
@@ -51,7 +50,7 @@ class MCTS:
         self.all_visits = 0
 
     def run(self, state):
-        env_copy = copy.deepcopy(self.env)
+        env_copy = self.env.clone()
         root = TreeNode(parent=None, env=env_copy)
         extendable_leafs = [root]
         self.all_visits = 0
@@ -89,7 +88,7 @@ class MCTS:
 
         if not new_node.env.game.is_over():
             leafs.append(new_node)
-        if len(list(set(best_node.env.get_legal_actions()) - set(best_node.children.keys()))) == 0:
+        if len(list(set(best_node.env._get_legal_actions()) - set(best_node.children.keys()))) == 0:
             leafs.remove(best_node)
         return True
 

@@ -27,3 +27,10 @@ class Dealer:
         task = CrewTask(card=card, owner=player_id)
         self.tasks.remove(card)
         return task
+
+    def clone(self):
+        cloned = Dealer(no_tasks=0, np_random=self.np_random, fixed_tasks=False)
+        cloned.shuffled_deck = [card for card in self.shuffled_deck]
+        cloned.stock_pile = [card for card in self.stock_pile]
+        cloned.tasks = [card for card in self.tasks]
+        return cloned
