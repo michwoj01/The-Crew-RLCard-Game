@@ -1,5 +1,8 @@
+import copy
+
 import numpy as np
 
+from src.rlcard.agents.mcts_agent import MCTSAgent
 from src.rlcard.utils import seeding
 
 
@@ -60,14 +63,22 @@ class Env(object):
         while not self.is_over():
             # Agent plays
             if not is_training:
-                action, _ = self.agents[player_id].eval_step(state)
+                original_action, _ = self.agents[player_id].eval_step(state)
             else:
-                action = self.agents[player_id].step(state)
+                original_action = self.agents[player_id].step(state)
+
+            mcts_agent = MCTSAgent(copy.deepcopy(self))
+            mcts_action_id = mcts_agent.step(state)
+
+            action_to_make = mcts_action_id # ??
+            action_to_learn = original_action # ??
+            print(action_to_make)
+            print(action_to_learn)
 
             # Environment steps
-            next_state, next_player_id = self.step(action, self.agents[player_id].use_raw)
+            next_state, next_player_id = self.step(action_to_make, self.agents[player_id].use_raw)
             # Save action
-            trajectories[player_id].append(action)
+            trajectories[player_id].append(action_to_learn)
 
             # Set the state and player
             state = next_state
