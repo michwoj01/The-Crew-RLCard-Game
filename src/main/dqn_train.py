@@ -146,7 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=1)
+    parser.add_argument("--no_tasks", type=int, default=2)
     parser.add_argument("--fixed_tasks", type=bool, default=False)
     parser.add_argument("--skip_signals", type=bool, default=False)
 
