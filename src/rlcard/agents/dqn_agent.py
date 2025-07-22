@@ -286,45 +286,9 @@ class Estimator(object):
 
 
 class EstimatorNetwork(nn.Module):
-    def __init__(self, num_actions=2, state_shape=(40, 15), mlp_layers=None):
-        super(EstimatorNetwork, self).__init__()
-
-        self.num_actions = num_actions
-        self.num_cards, self.card_feature_dims = state_shape  # Dynamic based on state shape
-        self.mlp_layers = mlp_layers if mlp_layers is not None else [128, 128]
-
-        # Convolutional layers to reduce card attributes
-        self.conv_layers = nn.Sequential(
-            nn.Conv1d(in_channels=self.card_feature_dims, out_channels=8, kernel_size=1),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=8, out_channels=1, kernel_size=1),
-            nn.ReLU()
-        )
-
-        # Flatten layer to prepare data for the linear layers
-        self.flatten = nn.Flatten(start_dim=1)
-
-        # Build the fully connected part of the network
-        layer_dims = [self.num_cards] + self.mlp_layers
-        fc = []
-        for i in range(len(layer_dims) - 1):
-            fc.append(nn.Linear(layer_dims[i], layer_dims[i + 1], bias=True))
-            fc.append(nn.ReLU())
-        fc.append(nn.Linear(layer_dims[-1], self.num_actions, bias=True))
-        self.fc_layers = nn.Sequential(*fc)
-
-    def forward(self, s):
-        # Expect s to be of shape [Batch, Num_cards, Card_features]
-        s = s.transpose(1, 2)  # Change to [Batch, Card_features, Num_cards] for Conv1d
-        s = self.conv_layers(s)
-        s = self.flatten(s)
-        return self.fc_layers(s)
-
-
-class EstimatorNetwork2(nn.Module):
 
     def __init__(self, num_actions=2, state_shape=None, mlp_layers=None):
-        super(EstimatorNetwork2, self).__init__()
+        super(EstimatorNetwork, self).__init__()
 
         self.num_actions = num_actions
         self.state_shape = state_shape
@@ -332,7 +296,8 @@ class EstimatorNetwork2(nn.Module):
 
         # build the Q network
         layer_dims = [np.prod(self.state_shape)] + self.mlp_layers
-        fc = [nn.Flatten(), nn.BatchNorm1d(layer_dims[0])]
+        fc = [nn.Flatten()]
+        fc.append(nn.BatchNorm1d(layer_dims[0]))
         for i in range(len(layer_dims) - 1):
             fc.append(nn.Linear(layer_dims[i], layer_dims[i + 1], bias=True))
             fc.append(nn.Tanh())
@@ -341,35 +306,6 @@ class EstimatorNetwork2(nn.Module):
 
     def forward(self, s):
         return self.fc_layers(s)
-
-
-class EstimatorNetwork3(nn.Module):
-
-    def __init__(self, num_actions, state_shape, mlp_layers=[128, 128]):
-        super().__init__()
-        self.num_actions = num_actions
-        self.state_shape = state_shape
-        self.mlp_layers = mlp_layers
-        self.num_cards, self.card_feature_dim = state_shape
-
-        layers = []
-        input_dim = self.card_feature_dim
-        for hidden_dim in mlp_layers:
-            layers.append(nn.Linear(input_dim, hidden_dim))
-            layers.append(nn.ReLU())
-            input_dim = hidden_dim
-        self.card_mlp = nn.Sequential(*layers)
-
-        self.head = nn.Sequential(
-            nn.Linear(input_dim, 128),
-            nn.ReLU(),
-            nn.Linear(128, self.num_actions)
-        )
-
-    def forward(self, s):
-        card_embeddings = self.card_mlp(s)  # [B, 40, hidden]
-        pooled = card_embeddings.sum(dim=1)  # sum over cards
-        return self.head(pooled)
 
 
 class Memory(object):

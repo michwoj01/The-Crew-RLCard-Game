@@ -99,7 +99,7 @@ def train(args):
                 performance = tournament(env, args.num_eval_games)
                 logger.log_performance(episode, np.mean(performance))
                 elapsed = time.time() - start_time
-                print(f"Epoki {episode - 999}–{episode} ukończone w {elapsed:.2f} s")
+                print(f"Epoki {episode} ukończone w {elapsed:.2f} s")
                 start_time = time.time()
 
     model_file = f'dqn_model_player.pth'
