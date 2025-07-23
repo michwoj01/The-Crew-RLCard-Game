@@ -22,7 +22,7 @@ class Round:
         return result
 
     def __init__(self, num_players: int, no_tasks: int, np_random,
-                 fixed_tasks: bool = False, skip_signals: bool = False):
+                 fixed_tasks: bool = False, skip_signals: bool = False, is_clone: bool = False):
         self.dealer = None
         self.no_tasks = no_tasks
         self.fixed_tasks = fixed_tasks
@@ -43,6 +43,7 @@ class Round:
         self.signaling_phase: bool = True
         self.tasks: List[CrewTask] = []
         self.trick_count: int = 0
+        self.is_clone = is_clone
 
     def init_round(self):
         self.dealer: Dealer = Dealer(self.np_random, self.no_tasks, self.fixed_tasks)
@@ -105,6 +106,9 @@ class Round:
                 elif trick_card.suit == CrewCard.trump_suit:
                     leading_card = trick_card
                     trick_winner = trick_player
+            if not self.is_clone:
+                print(f'Trick {self.trick_count + 1} won by player {trick_winner} with card {leading_card}:'
+                      f'{[str(trick_card) for trick_card in trick_moves]}')
             self.starting_player_id = trick_winner
             self.current_player_id = self.starting_player_id
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
@@ -155,6 +159,9 @@ class Round:
             if task.card in won_trick:
                 task_completed = task.complete(taker=trick_winner)
                 if not task_completed:
+                    if not self.is_clone:
+                        print(
+                            f'Task {task.card} should have been taken by {task.owner}, but was taken by {trick_winner}.')
                     self.impossible_to_win = True
                     break
                 else:
@@ -167,7 +174,8 @@ class Round:
             no_tasks=len(self.dealer.tasks) + len(self.tasks),
             np_random=None,
             fixed_tasks=False,
-            skip_signals=self.skip_signals
+            skip_signals=self.skip_signals,
+            is_clone=True
         )
         new_round.current_player_id = self.current_player_id
         new_round.starting_player_id = self.starting_player_id

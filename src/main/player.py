@@ -21,7 +21,7 @@ class CrewPlayer:
             self.signal = (card, signal_type)
 
     def __str__(self):
-        return ['N', 'E', 'S', 'W'][self.player_id]
+        return str(self.player_id)
 
     def clone(self) -> 'CrewPlayer':
         new_player = CrewPlayer(player_id=self.player_id)

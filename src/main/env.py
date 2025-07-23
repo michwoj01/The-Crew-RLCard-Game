@@ -15,6 +15,7 @@ class CrewEnv:
         self.num_players: int = config['num_players']
         self.no_tasks: int = config['no_tasks']
         self.fixed_tasks: bool = config['fixed_tasks']
+        self.is_clone: bool = config['is_clone']
         self.action_recorder = []
         self.timestep = 0
         state_shape_size = self.get_state_shape_size()
@@ -29,7 +30,7 @@ class CrewEnv:
                            "fixed_tasks": self.fixed_tasks,
                            "skip_signals": self.skip_signals,
                            "algorithm": self.algorithm,
-                           "clone": True})
+                           "is_clone": True})
         new_env.round = self.round.clone()
         return new_env
 
@@ -167,7 +168,8 @@ class CrewEnv:
 
     def step(self, action_id: int):
         action = self._decode_action(action_id)
-
+        if not self.is_clone:
+            print(f'{action} taken by player {self.get_player_id()}')
         self.timestep += 1
         self.action_recorder.append((self.get_player_id(), action))
         if isinstance(action, ChooseTaskAction):
