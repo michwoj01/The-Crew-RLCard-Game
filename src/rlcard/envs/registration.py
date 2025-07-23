@@ -1,7 +1,6 @@
 import importlib
 
 DEFAULT_CONFIG = {
-    'allow_step_back': False,
     'seed': None,
 }
 

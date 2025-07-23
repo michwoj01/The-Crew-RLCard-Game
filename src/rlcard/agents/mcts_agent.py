@@ -33,7 +33,7 @@ class TreeNode:
 
     def simulate(self):
         simulation_env_copy = self.env.clone()
-        while not simulation_env_copy.game.is_over():
+        while not simulation_env_copy.is_over():
             legal_actions = simulation_env_copy._get_legal_actions()
             if not legal_actions:
                 break
@@ -86,7 +86,7 @@ class MCTS:
         new_node.update_recursive(leaf_value)
         self.all_visits += 1
 
-        if not new_node.env.game.is_over():
+        if not new_node.env.is_over():
             leafs.append(new_node)
         if len(list(set(best_node.env._get_legal_actions()) - set(best_node.children.keys()))) == 0:
             leafs.remove(best_node)

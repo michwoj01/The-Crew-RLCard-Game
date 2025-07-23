@@ -1,33 +1,61 @@
 import numpy as np
 
-from action_event import ActionEvent
-from game import CrewGame
+from action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
 from src.main.judger import Judger
-from src.rlcard.envs import Env
+from src.main.round import Round
 
 
-class CrewEnv(Env):
+class CrewEnv:
     def __init__(self, config):
+        self.agents = None
+        self.round = None
         self.name = 'crew'
         self.skip_signals = config['skip_signals'] if 'skip_signals' in config else False
         self.algorithm = config['algorithm']
-        game = CrewGame(config['num_players'], config['no_tasks'], config['seed'], config['fixed_tasks'],
-                        self.skip_signals)
-        self.judger: Judger = Judger(game=game)
-        super().__init__(game=game, config=config)
+        self.num_players: int = config['num_players']
+        self.no_tasks: int = config['no_tasks']
+        self.fixed_tasks: bool = config['fixed_tasks']
+        self.action_recorder = []
+        self.timestep = 0
         state_shape_size = self.get_state_shape_size()
         self.state_shape = [[1, state_shape_size] for _ in range(self.num_players)]
-        self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(config['num_players'])]
+        self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(self.num_players)]
+        self.num_actions = self.get_num_actions()
+        self.np_random = np.random.default_rng()
+
+    def clone(self) -> 'CrewEnv':
+        new_env = CrewEnv({"num_players": self.num_players,
+                           "no_tasks": self.no_tasks,
+                           "fixed_tasks": self.fixed_tasks,
+                           "skip_signals": self.skip_signals,
+                           "algorithm": self.algorithm,
+                           "clone": True})
+        new_env.round = self.round.clone()
+        return new_env
+
+    def get_num_actions(self) -> int:
+        return ActionEvent.get_num_actions(self.skip_signals)
+
+    def get_player_id(self) -> int:
+        return self.round.get_current_player_id()
+
+    def is_over(self) -> bool:
+        return self.round.is_over()
+
+        # stub implementation
+
+    def get_state(self, player_id: int):
+        return {}
 
     def get_payoffs(self):
-        game = self.game
+        round = self.round
         all_tasks_taken = True
-        for task in game.round.tasks:
+        for task in round.tasks:
             if not task.taken or task.owner != task.taker:
                 all_tasks_taken = False
                 break
         if self.algorithm != 'dmc':
-            payoffs = game.round.payoffs
+            payoffs = round.payoffs
             if self.algorithm == 'dqn':
                 for player_payoff in payoffs:
                     if all_tasks_taken:
@@ -35,9 +63,9 @@ class CrewEnv(Env):
                     else:
                         player_payoff[-1] = -1
         elif all_tasks_taken:
-            payoffs = [1 for _ in range(game.get_num_players())]
+            payoffs = [1 for _ in range(self.num_players)]
         else:
-            payoffs = [-1 for _ in range(game.get_num_players())]
+            payoffs = [-1 for _ in range(self.num_players)]
         return payoffs
 
     def get_state_shape_size(self) -> int:
@@ -51,26 +79,25 @@ class CrewEnv(Env):
             state_shape_size += 4 * 17  # signal_rep_size
         return state_shape_size
 
-    def _extract_state(self, state):
-        game = self.game
+    def _extract_state(self, player_id: int = None):
         extracted_state = {}
         legal_actions = self._get_legal_actions()
-        current_player_id = game.get_player_id()
+        current_player_id = player_id if player_id else self.get_player_id()
 
         hand_rep = np.zeros(40, dtype=int)
-        if not game.is_over():
-            for card in game.round.players[current_player_id].hand:
+        if not self.is_over():
+            for card in self.round.players[current_player_id].hand:
                 hand_rep[card.card_id] = 1
 
         tasks_rep = [np.zeros(13, dtype=int) for _ in range(4)]
-        if not game.is_over():
-            for task in game.round.tasks:
+        if not self.is_over():
+            for task in self.round.tasks:
                 tasks_rep[task.owner][task.card.rank_index] = 1
                 tasks_rep[task.owner][9 + task.card.suit_index] = 1
 
         hidden_cards_rep = np.zeros(40, dtype=int)
-        if not game.is_over():
-            for player in game.round.players:
+        if not self.is_over():
+            for player in self.round.players:
                 if player.player_id != current_player_id:
                     for card in player.hand:
                         hidden_cards_rep[card.card_id] = 1
@@ -78,8 +105,8 @@ class CrewEnv(Env):
                         hidden_cards_rep[player.signal[0].card_id] = 0
 
         trick_pile_rep = [np.zeros(14, dtype=int) for _ in range(4)]
-        if not game.is_over():
-            trick_moves = game.round.get_trick_moves()
+        if not self.is_over():
+            trick_moves = self.round.get_trick_moves()
             for move in trick_moves:
                 player_id = move.player_id
                 card = move.card
@@ -99,8 +126,8 @@ class CrewEnv(Env):
 
         if not self.skip_signals:
             signals_rep = [np.zeros(17, dtype=int) for _ in range(4)]
-            if not game.is_over():
-                for player in game.round.players:
+            if not self.is_over():
+                for player in self.round.players:
                     if player.signal is not None:
                         card_rank = player.signal[0].rank_index
                         card_suit = player.signal[0].suit_index
@@ -118,18 +145,81 @@ class CrewEnv(Env):
         return ActionEvent.from_action_id(action_id=action_id)
 
     def _get_legal_actions(self):
-        legal_actions = self.judger.get_legal_actions()
+        legal_actions = Judger.get_legal_actions(self.round)
         legal_actions_ids = [action_event.action_id for action_event in legal_actions]
         return legal_actions_ids
 
-    def clone(self) -> 'CrewEnv':
-        new_env = CrewEnv({"num_players": self.game.get_num_players(),
-                           "no_tasks": self.game.no_tasks,
-                           "seed": 42,
-                           "fixed_tasks": self.game.fixed_tasks,
-                           "skip_signals": self.skip_signals,
-                           "algorithm": self.algorithm,
-                           "allow_step_back": self.game.allow_step_back})
-        new_env.game = self.game.clone()
-        new_env.judger = Judger(game=new_env.game)
-        return new_env
+    def reset(self):
+        state, player_id = self.init_game()
+        self.action_recorder = []
+        return self._extract_state(), player_id
+
+    def init_game(self):
+        self.round = Round(
+            num_players=self.num_players,
+            no_tasks=self.no_tasks,
+            np_random=self.np_random,
+            fixed_tasks=self.fixed_tasks,
+            skip_signals=self.skip_signals)
+        self.round.init_round()
+        current_player_id = self.get_player_id()
+        return {}, current_player_id
+
+    def step(self, action_id: int):
+        action = self._decode_action(action_id)
+
+        self.timestep += 1
+        self.action_recorder.append((self.get_player_id(), action))
+        if isinstance(action, ChooseTaskAction):
+            self.round.choose_task(action=action)
+        elif isinstance(action, SignalAction) or isinstance(action, SkipSignalAction):
+            self.round.signal(action=action)
+        else:
+            self.round.play_card(action=action)
+        next_player_id = self.get_player_id()
+
+        return self._extract_state(), next_player_id
+
+    def set_agents(self, agents):
+        self.agents = agents
+
+    def run(self, is_training=False):
+        trajectories = [[] for _ in range(self.num_players)]
+        state, player_id = self.reset()
+
+        # Loop to play the game
+        trajectories[player_id].append(state)
+        while not self.round.is_over():
+            # Agent plays
+            if not is_training:
+                action_id, _ = self.agents[player_id].eval_step(state)
+            else:
+                action_id = self.agents[player_id].step(state)
+
+            # Environment steps
+            next_state, next_player_id = self.step(action_id)
+            # Save action
+            trajectories[player_id].append(action_id)
+
+            # Set the state and player
+            state = next_state
+            player_id = next_player_id
+
+            # Save state.
+            if not self.round.is_over():
+                trajectories[player_id].append(state)
+
+        # Add a final state to all the players
+        for player_id in range(self.num_players):
+            state = self._extract_state(player_id)
+            trajectories[player_id].append(state)
+
+        # Payoffs
+        payoffs = self.get_payoffs()
+
+        return trajectories, payoffs
+
+    def get_action_feature(self, action):
+        feature = np.zeros(self.num_actions, dtype=np.int8)
+        feature[action] = 1
+        return feature

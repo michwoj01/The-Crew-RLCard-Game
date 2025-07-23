@@ -1,7 +1,5 @@
 from typing import List
 
-from numpy.random import RandomState
-
 from action_event import PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
 from card import CrewCard, CrewTask
 from dealer import Dealer
@@ -23,17 +21,18 @@ class Round:
             result = 'playing card'
         return result
 
-    def __init__(self, num_players: int, no_tasks: int, np_random: RandomState,
+    def __init__(self, num_players: int, no_tasks: int, np_random,
                  fixed_tasks: bool = False, skip_signals: bool = False):
-        self.np_random: RandomState = np_random
-        self.dealer: Dealer = Dealer(no_tasks, self.np_random, fixed_tasks)
+        self.dealer = None
+        self.no_tasks = no_tasks
+        self.fixed_tasks = fixed_tasks
+        self.np_random = np_random
         self.num_players: int = num_players
         self.skip_signals: bool = skip_signals
         self.players: List[CrewPlayer] = []
         self.payoffs: List[List[float]] = []
         for player_id in range(num_players):
-            self.players.append(CrewPlayer(
-                player_id=player_id, np_random=self.np_random))
+            self.players.append(CrewPlayer(player_id=player_id))
             self.payoffs.append([])
         self.current_player_id: int = 0
         self.starting_player_id: int = 0
@@ -46,6 +45,7 @@ class Round:
         self.trick_count: int = 0
 
     def init_round(self):
+        self.dealer: Dealer = Dealer(self.np_random, self.no_tasks, self.fixed_tasks)
         for player_id in range(self.num_players):
             player = self.players[player_id]
             self.dealer.deal_cards(player=player, num=10)
@@ -165,11 +165,10 @@ class Round:
         new_round = Round(
             num_players=self.num_players,
             no_tasks=len(self.dealer.tasks) + len(self.tasks),
-            np_random=self.np_random,
+            np_random=None,
             fixed_tasks=False,
             skip_signals=self.skip_signals
         )
-
         new_round.current_player_id = self.current_player_id
         new_round.starting_player_id = self.starting_player_id
         new_round.play_card_count = self.play_card_count

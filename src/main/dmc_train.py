@@ -2,9 +2,11 @@ import argparse
 
 from src.rlcard.agents import DMCTrainer
 from src.rlcard.envs import register, make
+from src.rlcard.utils import set_seed
 
 
 def train(args):
+    set_seed(args.seed)
     register(
         env_id='crew',
         entry_point='env:CrewEnv',
@@ -13,7 +15,6 @@ def train(args):
     env = make('crew', config={
         'num_players': args.num_players,
         'no_tasks': args.no_tasks,
-        'seed': args.seed,
         'fixed_tasks': args.fixed_tasks,
         'skip_signals': args.skip_signals,
         'algorithm': args.algorithm,

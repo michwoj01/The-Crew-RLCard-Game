@@ -23,7 +23,6 @@ def train(args):
     env: CrewEnv = make('crew', config={
         'num_players': args.num_players,
         'no_tasks': args.no_tasks,
-        'seed': args.seed,
         'fixed_tasks': args.fixed_tasks,
         'skip_signals': args.skip_signals,
         'algorithm': args.algorithm

@@ -1,28 +1,23 @@
 from typing import List
-from typing import TYPE_CHECKING
 
 from action_event import ActionEvent, PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
 from card import CrewCard, SignalType
-
-if TYPE_CHECKING:
-    from game import CrewGame
+from src.main.round import Round
 
 
 class Judger:
 
-    def __init__(self, game: 'CrewGame'):
-        self.game: CrewGame = game
-
-    def get_legal_actions(self) -> List[ActionEvent]:
+    @staticmethod
+    def get_legal_actions(round: Round) -> List[ActionEvent]:
         legal_actions: List[ActionEvent] = []
-        match self.game.round.round_phase:
+        match round.round_phase:
             case 'game over':
                 legal_actions = []
             case 'choosing tasks':
-                for card in self.game.round.dealer.tasks:
+                for card in round.dealer.tasks:
                     legal_actions.append(ChooseTaskAction(card=card))
             case 'signaling':
-                current_player = self.game.round.get_current_player()
+                current_player = round.get_current_player()
                 if current_player.can_signal():
                     legal_actions.append(SkipSignalAction())
                     hand = current_player.hand
@@ -46,8 +41,8 @@ class Judger:
                 else:
                     raise ValueError(f"Player {current_player.player_id} cannot signal, but was chosen for.")
             case 'playing card':
-                current_player = self.game.round.get_current_player()
-                trick_moves = self.game.round.get_trick_moves()
+                current_player = round.get_current_player()
+                trick_moves = round.get_trick_moves()
                 hand = current_player.hand
                 legal_cards = hand
                 if trick_moves and len(trick_moves) < 4:

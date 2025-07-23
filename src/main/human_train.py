@@ -11,7 +11,6 @@ register(
 env = make('crew', config={
     'num_players': 4,
     'no_tasks': 2,
-    'seed': 42,
     'fixed_tasks': False,
     'skip_signals': False,
 })
