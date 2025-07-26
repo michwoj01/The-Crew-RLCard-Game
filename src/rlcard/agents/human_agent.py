@@ -1,6 +1,6 @@
 import numpy as np
 
-from action_event import ActionEvent
+from src.main.action_event import ActionEvent
 
 
 class HumanAgent(object):
@@ -89,7 +89,7 @@ def _print_state(state):
     # Tasks
     print("\nTasks:")
     for pid in range(4):
-        task_rep = raw_obs[offset + pid * 13: offset + (pid + 1) * 13]
+        task_rep = raw_obs[offset + pid * 14: offset + (pid + 1) * 14]
         rank_part = task_rep[:9]
         suit_part = task_rep[9:13]
         for rank_idx, r in enumerate(rank_part):
@@ -98,7 +98,7 @@ def _print_state(state):
                     if s == 1:
                         card_id = rank_idx + 9 * suit_idx
                         print(f"  Player {pid}: {fmt_card(card_id)}")
-    offset += 4 * 13 + 40 + 4
+    offset += 4 * 14 + 40 + 4
 
     # Signals
     if offset + 4 * 17 <= len(raw_obs):

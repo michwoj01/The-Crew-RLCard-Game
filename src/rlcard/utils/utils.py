@@ -165,6 +165,23 @@ def tournament(env, num):
         payoffs[i] /= counter
     return payoffs
 
+
+def tournament_with_eval_hands(env):
+    from src.main.dealer import Dealer
+    num_eval_hands = Dealer.get_num_eval_handouts()
+    payoffs = [0 for _ in range(env.num_players)]
+    good_games = 0
+    for hand_id in range(num_eval_hands):
+        env.set_eval_params(eval_mode=True, eval_hand_id=hand_id)
+        _, game_payoffs = env.run(is_training=False)
+        if game_payoffs[0][-1] > 0:
+            good_games += 1
+        for i, _ in enumerate(payoffs):
+            payoffs[i] += game_payoffs[i][-1]  # Final payoff for player i
+    for i, _ in enumerate(payoffs):
+        payoffs[i] /= num_eval_hands
+    return payoffs
+
 def plot_curve(csv_path, save_path, algorithm):
     import os
     import csv

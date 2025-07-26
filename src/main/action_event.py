@@ -80,10 +80,10 @@ class SignalAction(ActionEvent):
         self.signal_type: SignalType = signal_type
 
     def __str__(self):
-        return f"signal - {self.card} - {self.signal_type}"
+        return f"sig - {self.card} - {self.signal_type}"
 
     def __repr__(self):
-        return f"signal - {self.card} - {self.signal_type}"
+        return f"sig - {self.card} - {self.signal_type}"
 
 
 class SkipSignalAction(ActionEvent):

@@ -7,10 +7,10 @@ from move import PlayCardMove, CrewMove, ChooseTaskMove, SignalMove, SkipMove
 from player import CrewPlayer
 
 
-class Round:
+class Game:
 
     @property
-    def round_phase(self) -> str:
+    def game_phase(self) -> str:
         if len(self.dealer.tasks) > 0:
             result = 'choosing tasks'
         elif self.is_over():
@@ -22,13 +22,14 @@ class Round:
         return result
 
     def __init__(self, num_players: int, no_tasks: int, np_random,
-                 fixed_tasks: bool = False, skip_signals: bool = False, is_clone: bool = False):
+                 skip_signals: bool = False, is_clone: bool = False, eval_mode: bool = False, eval_hand_id: int = 0):
         self.dealer = None
         self.no_tasks = no_tasks
-        self.fixed_tasks = fixed_tasks
         self.np_random = np_random
         self.num_players: int = num_players
         self.skip_signals: bool = skip_signals
+        self.eval_mode = eval_mode
+        self.eval_hand_id = eval_hand_id
         self.players: List[CrewPlayer] = []
         self.payoffs: List[List[float]] = []
         for player_id in range(num_players):
@@ -45,8 +46,9 @@ class Round:
         self.trick_count: int = 0
         self.is_clone = is_clone
 
-    def init_round(self):
-        self.dealer: Dealer = Dealer(self.np_random, self.no_tasks, self.fixed_tasks)
+    def init_game(self):
+        self.dealer: Dealer = Dealer(np_random=self.np_random, no_tasks=self.no_tasks,
+                                     eval_mode=self.eval_mode, eval_hand_id=self.eval_hand_id)
         for player_id in range(self.num_players):
             player = self.players[player_id]
             self.dealer.deal_cards(player=player, num=10)
@@ -106,9 +108,9 @@ class Round:
                 elif trick_card.suit == CrewCard.trump_suit:
                     leading_card = trick_card
                     trick_winner = trick_player
-            if not self.is_clone:
-                print(f'Trick {self.trick_count + 1} won by player {trick_winner} with card {leading_card}:'
-                      f'{[str(trick_card) for trick_card in trick_moves]}')
+            # if not self.is_clone:
+            #     print(f'Trick {self.trick_count + 1} won by player {trick_winner} with card {leading_card}:'
+            #           f'{[str(trick_card) for trick_card in trick_moves]}')
             self.starting_player_id = trick_winner
             self.current_player_id = self.starting_player_id
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
@@ -159,36 +161,37 @@ class Round:
             if task.card in won_trick:
                 task_completed = task.complete(taker=trick_winner)
                 if not task_completed:
-                    if not self.is_clone:
-                        print(
-                            f'Task {task.card} should have been taken by {task.owner}, but was taken by {trick_winner}.')
+                    # if not self.is_clone:
+                    #     print(
+                    #         f'Task {task.card} should have been taken by {task.owner}, but was taken by {trick_winner}.')
                     self.impossible_to_win = True
                     break
                 else:
                     for player in self.players:
                         self.payoffs[player.player_id][-1] = 0.5
 
-    def clone(self) -> 'Round':
-        new_round = Round(
+    def clone(self) -> 'Game':
+        new_game = Game(
             num_players=self.num_players,
             no_tasks=len(self.dealer.tasks) + len(self.tasks),
             np_random=None,
-            fixed_tasks=False,
             skip_signals=self.skip_signals,
-            is_clone=True
+            is_clone=True,
+            eval_mode=self.eval_mode,
+            eval_hand_id=self.eval_hand_id
         )
-        new_round.current_player_id = self.current_player_id
-        new_round.starting_player_id = self.starting_player_id
-        new_round.play_card_count = self.play_card_count
-        new_round.move_sheet = [move for move in self.move_sheet]
-        new_round.impossible_to_win = self.impossible_to_win
-        new_round.signal_counter = self.signal_counter
-        new_round.signaling_phase = self.signaling_phase
-        new_round.trick_count = self.trick_count
+        new_game.current_player_id = self.current_player_id
+        new_game.starting_player_id = self.starting_player_id
+        new_game.play_card_count = self.play_card_count
+        new_game.move_sheet = [move for move in self.move_sheet]
+        new_game.impossible_to_win = self.impossible_to_win
+        new_game.signal_counter = self.signal_counter
+        new_game.signaling_phase = self.signaling_phase
+        new_game.trick_count = self.trick_count
 
-        new_round.payoffs = [payoff_list.copy() for payoff_list in self.payoffs]
-        new_round.players = [player.clone() for player in self.players]
-        new_round.tasks = [task.clone() for task in self.tasks]
-        new_round.dealer = self.dealer.clone()
+        new_game.payoffs = [payoff_list.copy() for payoff_list in self.payoffs]
+        new_game.players = [player.clone() for player in self.players]
+        new_game.tasks = [task.clone() for task in self.tasks]
+        new_game.dealer = self.dealer.clone()
 
-        return new_round
+        return new_game
