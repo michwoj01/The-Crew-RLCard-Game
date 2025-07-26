@@ -30,12 +30,11 @@ def run_mcts(args):
     agents = [MCTSAgent(env, n_simulations=args.n_simulations) for _ in range(env.num_players)]
     env.set_agents(agents)
 
-    with Logger(args.save_path) as logger:
+    with Logger(args.save_path) as _logger:
         for episode in range(1, args.num_episodes + 1):
             start_time = time.time()
             _, payoffs = env.run(is_training=False)
             print(payoffs, time.time() - start_time)
-            logger.log_performance(episode, np.sum(payoffs[0]) / 2)
 
 
 if __name__ == '__main__':

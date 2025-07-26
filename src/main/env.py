@@ -25,14 +25,13 @@ class CrewEnv(Env):
             if not task.taken or task.owner != task.taker:
                 all_tasks_taken = False
                 break
-        if self.algorithm != 'dmc':
-            payoffs = game.round.payoffs
-            if self.algorithm == 'dqn':
-                for player_payoff in payoffs:
-                    if all_tasks_taken:
-                        player_payoff[-1] = 1
-                    else:
-                        player_payoff[-1] = -1
+        payoffs = game.round.payoffs
+        if self.algorithm == 'dqn':
+            for player_payoff in payoffs:
+                if all_tasks_taken:
+                    player_payoff[-1] = 1
+                else:
+                    player_payoff[-1] = -1
         elif all_tasks_taken:
             payoffs = [1 for _ in range(game.get_num_players())]
         else:

@@ -4,106 +4,180 @@ import math
 
 
 class TreeNode:
-    def __init__(self, parent, env):
+    def __init__(self, parent, env, action_taken=None):
         self.parent = parent
         self.children = {}
         self.visits = 0
         self.value = 0
         self.env = env
+        self.action_taken = action_taken  # Action that led to this node
+        self.player_id = env.get_player_id()  # Player who will act from this state
 
-    def expand(self, env):
-        legal_actions = env._get_legal_actions()
+    def is_fully_expanded(self):
+        legal_actions = self.env._get_legal_actions()
+        return len(self.children) == len(legal_actions)
+
+    def expand(self):
+        legal_actions = self.env._get_legal_actions()
         unexplored_actions = list(set(legal_actions) - set(self.children.keys()))
         if not unexplored_actions:
-            raise ValueError('No unexplored actions available in the environment: {}'.format(env))
+            return None
+
         action_id = random.choice(unexplored_actions)
-        new_env = env.clone()
+        new_env = self.env.clone()
         new_env.step(action_id)
-        self.children[action_id] = TreeNode(self, new_env)
-        return self.children[action_id]
+        child = TreeNode(self, new_env, action_id)
+        self.children[action_id] = child
+        return child
 
-    def update(self, leaf_value):
+    def select_best_child(self, c_param=1.414):
+        """Select child using UCB1 formula"""
+        if not self.children:
+            return None
+
+        best_score = -float('inf')
+        best_child = None
+
+        for child in self.children.values():
+            if child.visits == 0:
+                return child  # Prioritize unvisited children
+
+            # UCB1 formula
+            exploitation = child.value / child.visits
+            exploration = c_param * math.sqrt(math.log(self.visits) / child.visits)
+            score = exploitation + exploration
+
+            if score > best_score:
+                best_score = score
+                best_child = child
+
+        return best_child
+
+    def update(self, result):
         self.visits += 1
-        self.value += leaf_value
+        self.value += result
 
-    def update_recursive(self, leaf_value):
+    def backpropagate(self, result, original_player):
+        # In The Crew, all players win or lose together (cooperative game)
+        # So we can use the result directly for all players
+        self.update(result)
         if self.parent:
-            self.parent.update_recursive(leaf_value)
-        self.update(leaf_value)
+            self.parent.backpropagate(result, original_player)
 
     def simulate(self):
-        simulation_env_copy = self.env.clone()
-        while not simulation_env_copy.game.is_over():
-            legal_actions = simulation_env_copy._get_legal_actions()
+        simulation_env = self.env.clone()
+        original_player = simulation_env.get_player_id()
+
+        while not simulation_env.is_over():
+            legal_actions = simulation_env._get_legal_actions()
             if not legal_actions:
                 break
             action = random.choice(legal_actions)
-            simulation_env_copy.step(action)
-        payoffs = simulation_env_copy.get_payoffs()
-        return sum(payoffs[self.env.get_player_id()])
+            simulation_env.step(action)
+
+        payoffs = simulation_env.get_payoffs()
+        return payoffs[original_player]
 
 
 class MCTS:
-    def __init__(self, env, n_simulations=100):
+    def __init__(self, env, n_simulations=100, c_param=1.414):
         self.n_simulations = n_simulations
         self.env = env
-        self.all_visits = 0
+        self.c_param = c_param
 
     def run(self, state):
-        env_copy = self.env.clone()
-        root = TreeNode(parent=None, env=env_copy)
-        extendable_leafs = [root]
-        self.all_visits = 0
-        for i in range(self.n_simulations):
-            if not self.find_best_node(root, extendable_leafs):
-                break
-        visits = [(act_id, node.visits) for act_id, node in root.children.items()]
-        if not visits:
-            legal_actions = state['legal_actions']
+        """Run MCTS and return best action"""
+        # Create root node from current environment state
+        root_env = self.env.clone()
+        root = TreeNode(parent=None, env=root_env)
+        original_player = root_env.get_player_id()
+
+        # If only one legal action, return it immediately
+        legal_actions = state['legal_actions']
+        if len(legal_actions) <= 1:
+            return legal_actions[0] if legal_actions else None
+
+        # Run MCTS simulations
+        for _ in range(self.n_simulations):
+            # Selection: traverse tree using UCB1
+            node = root
+            path = [node]
+
+            while not node.env.is_over() and node.is_fully_expanded():
+                node = node.select_best_child(self.c_param)
+                if node is None:
+                    break
+                path.append(node)
+
+            # Expansion: add new child if possible
+            if not node.env.is_over() and not node.is_fully_expanded():
+                child = node.expand()
+                if child:
+                    node = child
+                    path.append(node)
+
+            # Simulation: random rollout from this node
+            result = node.simulate()
+
+            # Backpropagation: update all nodes in path
+            node.backpropagate(result, original_player)
+
+        # Select best action based on visit counts (most robust)
+        if not root.children:
             return random.choice(legal_actions)
-        visits.sort(key=lambda x: x[1], reverse=True)
-        best_action_id = visits[0][0]
-        return best_action_id
 
-    def find_best_node(self, root: TreeNode, leafs: list[TreeNode]):
-        best_node = None
-        best_score = -float('inf')
-        if self.all_visits == 0:
-            best_node = root
-        else:
-            for leaf in leafs:
-                if leaf.visits == 0:
-                    raise ValueError('No visits for leaf {}'.format(leaf.env))
-                exploration_factor = math.sqrt((2 * math.log(self.all_visits, math.e)) / leaf.visits)
-                score = leaf.value + exploration_factor
-                if score > best_score:
-                    best_score = score
-                    best_node = leaf
-        if best_node is None:
-            return False
-        new_node = best_node.expand(best_node.env)
-        leaf_value = new_node.simulate()
-        new_node.update_recursive(leaf_value)
-        self.all_visits += 1
+        best_action = max(root.children.keys(),
+                          key=lambda a: root.children[a].visits)
+        return best_action
 
-        if not new_node.env.game.is_over():
-            leafs.append(new_node)
-        if len(list(set(best_node.env._get_legal_actions()) - set(best_node.children.keys()))) == 0:
-            leafs.remove(best_node)
-        return True
+    def get_action_stats(self, state):
+        """Get statistics for all actions (useful for debugging)"""
+        root_env = self.env.clone()
+        root = TreeNode(parent=None, env=root_env)
+
+        for _ in range(self.n_simulations):
+            node = root
+            while not node.env.is_over() and node.is_fully_expanded():
+                node = node.select_best_child(self.c_param)
+                if node is None:
+                    break
+
+            if not node.env.is_over() and not node.is_fully_expanded():
+                child = node.expand()
+                if child:
+                    node = child
+
+            result = node.simulate()
+            node.backpropagate(result, root_env.get_player_id())
+
+        stats = {}
+        for action_id, child in root.children.items():
+            stats[action_id] = {
+                'visits': child.visits,
+                'value': child.value,
+                'avg_value': child.value / child.visits if child.visits > 0 else 0
+            }
+        return stats
+
 
 class MCTSAgent:
-    def __init__(self, env, n_simulations=100):
+    def __init__(self, env, n_simulations=100, c_param=1.414):
         self.env = env
-        self.mcts = MCTS(env, n_simulations=n_simulations)
+        self.n_simulations = n_simulations
+        self.c_param = c_param
         self.use_raw = False
 
     def step(self, state):
         legal_actions = state['legal_actions']
-        if len(legal_actions) == 1:
-            return legal_actions[0]
-        action_id = self.mcts.run(state)
+        if len(legal_actions) <= 1:
+            return legal_actions[0] if legal_actions else None
+
+        mcts = MCTS(self.env, self.n_simulations, self.c_param)
+        action_id = mcts.run(state)
         return action_id
 
     def eval_step(self, state):
         return self.step(state), None
+
+    def set_simulations(self, n_simulations):
+        self.n_simulations = n_simulations
