@@ -86,11 +86,21 @@ class DQNAgent(object):
 
     def eval_step(self, state):
         q_values = self.predict(state)
-        best_action = np.argmax(q_values)
+        legal_actions = state['legal_actions']
+
+        best_legal_action_idx = 0
+        best_q_value = q_values[legal_actions[0]]
+
+        for i, action in enumerate(legal_actions):
+            if q_values[action] > best_q_value:
+                best_q_value = q_values[action]
+                best_legal_action_idx = i
+
+        best_action = legal_actions[best_legal_action_idx]
 
         info = {
-            'values': {state['legal_actions'][i]: float(q_values[state['legal_actions'][i]]) for i in
-                       range(len(state['legal_actions']))}}
+            'values': {action: float(q_values[action]) for action in legal_actions}
+        }
 
         return best_action, info
 
@@ -300,7 +310,8 @@ class EstimatorNetwork(nn.Module):
         fc.append(nn.BatchNorm1d(layer_dims[0]))
         for i in range(len(layer_dims) - 1):
             fc.append(nn.Linear(layer_dims[i], layer_dims[i + 1], bias=True))
-            fc.append(nn.Tanh())
+            fc.append(nn.ReLU())
+            fc.append(nn.Dropout(0.1))  # Add dropout for regularization
         fc.append(nn.Linear(layer_dims[-1], self.num_actions, bias=True))
         self.fc_layers = nn.Sequential(*fc)
 

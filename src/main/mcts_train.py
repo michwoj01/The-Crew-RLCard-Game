@@ -21,7 +21,6 @@ def run_mcts(args):
     env: CrewEnv = make('crew', config={
         'num_players': args.num_players,
         'no_tasks': args.no_tasks,
-        'fixed_tasks': args.fixed_tasks,
         'skip_signals': args.skip_signals,
         'algorithm': args.algorithm
     })
@@ -53,7 +52,6 @@ if __name__ == '__main__':
     parser.add_argument("--algorithm", type=str, default="mcts")
     parser.add_argument("--num_players", type=int, default=4)
     parser.add_argument("--no_tasks", type=int, default=4)
-    parser.add_argument("--fixed_tasks", type=bool, default=False)
     parser.add_argument("--skip_signals", type=bool, default=False)
 
     args = parser.parse_args()
