@@ -3,10 +3,8 @@ import time
 
 import numpy as np
 
-from src.main.env import CrewEnv
-from src.rlcard.agents import DQNAgent
-from src.rlcard.agents.mcts_agent import MCTSAgent
-from src.rlcard.envs import register, make
+from src.rlcard.agents import DQNAgent, MCTSAgent
+from src.rlcard.envs import CrewEnv, register, make
 from src.rlcard.utils import set_seed, Logger, plot_curve, reorganize, get_device, \
     tournament_with_eval_hands
 

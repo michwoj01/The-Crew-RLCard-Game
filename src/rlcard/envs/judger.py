@@ -1,8 +1,8 @@
 from typing import List
 
-from action_event import ActionEvent, PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
-from card import CrewCard, SignalType
-from src.main.game import Game
+from src.rlcard.envs.action_event import ActionEvent, PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
+from src.rlcard.envs.card import CrewCard, SignalType
+from src.rlcard.envs.game import Game
 
 
 class Judger:

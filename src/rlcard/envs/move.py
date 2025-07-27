@@ -1,4 +1,4 @@
-from action_event import *
+from src.rlcard.envs.action_event import *
 
 
 class CrewMove(object):  # Interface

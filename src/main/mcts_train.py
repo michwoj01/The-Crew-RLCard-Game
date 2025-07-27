@@ -2,9 +2,8 @@ import argparse
 import os
 import time
 
-from src.main.env import CrewEnv
-from src.rlcard.agents.mcts_agent import MCTSAgent
-from src.rlcard.envs import register, make
+from src.rlcard.agents import MCTSAgent
+from src.rlcard.envs import register, make, CrewEnv
 from src.rlcard.utils import set_seed, Logger
 
 
@@ -31,6 +30,7 @@ def run_mcts(args):
             start_time = time.time()
             _, payoffs = env.run(is_training=False)
             print(payoffs, time.time() - start_time)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

@@ -1,4 +1,4 @@
-from card import CrewCard, SignalType
+from src.rlcard.envs.card import CrewCard, SignalType
 
 
 class ActionEvent(object):
@@ -24,11 +24,11 @@ class ActionEvent(object):
             return PlayCardAction(card=card)
         elif action_id < ActionEvent.first_signal_action_id:
             card = CrewCard.card(card_id=action_id -
-                                 ActionEvent.first_choose_task_action_id)
+                                         ActionEvent.first_choose_task_action_id)
             return ChooseTaskAction(card=card)
         elif action_id <= ActionEvent.last_signal_action_id:
             signal_type_id = (
-                action_id - ActionEvent.first_signal_action_id) // 40
+                                     action_id - ActionEvent.first_signal_action_id) // 40
             card_id = (action_id - ActionEvent.first_signal_action_id) % 40
             return SignalAction(CrewCard.card(card_id=card_id), SignalType(signal_type_id))
         elif action_id == ActionEvent.skip_signal_action_id:

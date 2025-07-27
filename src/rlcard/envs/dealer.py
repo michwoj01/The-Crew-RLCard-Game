@@ -2,8 +2,8 @@ import random
 
 import numpy as np
 
-from card import CrewCard, CrewTask
-from player import CrewPlayer
+from src.rlcard.envs.card import CrewCard, CrewTask
+from src.rlcard.envs.player import CrewPlayer
 
 
 class Dealer:

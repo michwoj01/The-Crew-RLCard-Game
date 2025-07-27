@@ -167,7 +167,7 @@ def tournament(env, num):
 
 
 def tournament_with_eval_hands(env):
-    from src.main.dealer import Dealer
+    from src.rlcard.envs.dealer import Dealer
     num_eval_hands = Dealer.get_num_eval_handouts()
     payoffs = [0 for _ in range(env.num_players)]
     good_games = 0

@@ -1,7 +1,6 @@
 import sys
 
-from src.rlcard.agents.human_gui_agent import HumanAgentGUI
-from src.rlcard.agents.mcts_agent import MCTSAgent
+from src.rlcard.agents import HumanAgentGUI, MCTSAgent
 from src.rlcard.envs import register, make
 from src.rlcard.utils import set_seed
 
@@ -9,7 +8,7 @@ from src.rlcard.utils import set_seed
 def run_game(no_tasks):
     register(
         env_id='crew',
-        entry_point='env:CrewEnv',
+        entry_point='src.rlcard.envs:CrewEnv',
     )
 
     env = make('crew', config={

@@ -1,8 +1,8 @@
 import numpy as np
 
-from action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
-from src.main.game import Game
-from src.main.judger import Judger
+from src.rlcard.envs.action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
+from src.rlcard.envs.game import Game
+from src.rlcard.envs.judger import Judger
 
 
 class CrewEnv:
@@ -169,9 +169,9 @@ class CrewEnv:
         return {}, current_player_id
 
     def step(self, action_id: int):
+        if not self.is_clone:
+            self.agents[0].log_move(self.get_player_id(), action_id)
         action = self._decode_action(action_id)
-        # if not self.is_clone:
-        #     print(f'{action} taken by player {self.get_player_id()}')
         self.timestep += 1
         self.action_recorder.append((self.get_player_id(), action))
         if isinstance(action, ChooseTaskAction):

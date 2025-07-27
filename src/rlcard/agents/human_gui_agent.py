@@ -5,8 +5,8 @@ from tkinter import ttk, font
 
 import numpy as np
 
-from src.main.action_event import ActionEvent
-from src.main.card import CrewCard
+from src.rlcard.envs.action_event import ActionEvent
+from src.rlcard.envs.card import CrewCard
 
 
 def get_suit_color(suit):
@@ -473,7 +473,7 @@ class CrewGameGUI:
         for pid in range(4):
             sig_rep = raw_obs[offset + pid * 17: offset + (pid + 1) * 17]
             rank_idx = np.argmax(sig_rep[:9]) if np.any(sig_rep[:9]) else None
-            suit_idx = np.argmax(sig_rep[9:13]) if np.any(sig_rep[9:13]) else None
+            suit_idx = np.argmax(sig_rep[9:14]) if np.any(sig_rep[9:14]) else None
             sig_type_idx = np.argmax(sig_rep[14:17]) if np.any(sig_rep[14:17]) else None
 
             if rank_idx is not None and suit_idx is not None and sig_type_idx is not None:
@@ -490,10 +490,6 @@ class CrewGameGUI:
 
     def on_action_selected(self, action_id):
         self.selected_action = action_id
-        action_text = str(ActionEvent.from_action_id(action_id))
-
-        self.log_player_move(0, action_text)
-
         self.action_queue.put(action_id)
 
         self.clear_actions()
@@ -518,11 +514,16 @@ class HumanAgentGUI:
     def __init__(self):
         self.use_raw = False
         self.gui = None
-        self.start_config = None
+        self.move_buffer = []  # Buffer moves before GUI is created
 
     def create_gui(self):
         if not self.gui:
             self.gui = CrewGameGUI()
+            # Replay buffered moves
+            for player_id, action_id in self.move_buffer:
+                action_text = str(ActionEvent.from_action_id(action_id))
+                self.gui.log_player_move(player_id, action_text)
+            self.move_buffer.clear()
 
     def step(self, state) -> int:
         if not self.gui:
@@ -548,6 +549,9 @@ class HumanAgentGUI:
         if self.gui:
             action_text = str(ActionEvent.from_action_id(action_id))
             self.gui.log_player_move(player_id, action_text)
+        else:
+            # Buffer the move if GUI isn't ready yet
+            self.move_buffer.append((player_id, action_id))
 
     def update_state_only(self, state):
         if self.gui:

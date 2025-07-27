@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.main.action_event import ActionEvent
+from src.rlcard.envs.action_event import ActionEvent
 
 
 class HumanAgent(object):
