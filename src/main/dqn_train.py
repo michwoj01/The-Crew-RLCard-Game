@@ -81,9 +81,10 @@ def train(args):
                 save_path=args.save_path,
                 save_every=args.save_every
             )
-    agents = [agent]
-    for _ in range(env.num_players - 1):
-        agents.append(MCTSAgent(env, n_simulations=args.n_simulations))
+    agents = [agent for _ in range(env.num_players)]
+    # FOR 1s DGN AND 3 MCTS
+    # for _ in range(env.num_players - 1):
+    #     agents.append(MCTSAgent(env, n_simulations=args.n_simulations))
     env.set_agents(agents)
 
     # Start training
@@ -111,9 +112,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # training parameters
-    parser.add_argument('--num_episodes', type=int, default=1000)
-    parser.add_argument('--num_eval_games', type=int, default=5)
-    parser.add_argument('--evaluate_every', type=int, default=20)
+    parser.add_argument('--num_episodes', type=int, default=300_000)  # 1000
+    parser.add_argument('--num_eval_games', type=int, default=100)  # 5
+    parser.add_argument('--evaluate_every', type=int, default=1000)  # 20
     parser.add_argument("--load_checkpoint_path", type=str, default="")
 
     # DQN agent parameters
@@ -146,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=4)
+    parser.add_argument("--no_tasks", type=int, default=2)
     parser.add_argument("--fixed_tasks", type=bool, default=False)
     parser.add_argument("--skip_signals", type=bool, default=False)
     parser.add_argument("--n_simulations", type=int, default=100)
