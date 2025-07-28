@@ -2,6 +2,7 @@ import numpy as np
 
 from action_event import ActionEvent
 from game import CrewGame
+from src.main.card import CrewCard
 from src.main.judger import Judger
 from src.rlcard.envs import Env
 
@@ -43,8 +44,9 @@ class CrewEnv(Env):
         extracted_state = {}
         legal_actions = self._get_legal_actions()
         current_player_id = game.get_player_id()
+        deck = CrewCard.get_deck()
 
-        obs = [[0 for _ in range(11 if self.skip_signals else 15)] for _ in range(40)]
+        obs = [[0 for _ in range(15 if self.skip_signals else 19)] for _ in range(40)]
 
         if not game.is_over():
             for card in game.round.players[current_player_id].hand:
@@ -69,11 +71,24 @@ class CrewEnv(Env):
                 player_id = task.owner
                 card_id = task.card.card_id
                 obs[card_id][7 + player_id] = 1
+            # META
+            for card in deck:  # weak / medium / strong
+                strength = (card.rank - 1) // 3
+                if card.suit == CrewCard.trump_suit:
+                    strength = 3
+                obs[card.card_id][11 + strength] = 1
+            if len(trick_moves) > 0:  # can take
+                first_card = trick_moves[0].card
+                for card in deck:
+                    if (card.suit == first_card.suit and card.rank > first_card.rank) or \
+                            (card.suit == CrewCard.trump_suit and first_card.suit != CrewCard.trump_suit):
+                        obs[card.card_id][14] = 1
+            # END
             if not self.skip_signals:
                 for player in game.round.players:
                     if player.signal:
                         card_id = player.signal[0].card_id
-                        obs[card_id][11 + player.player_id] = 1
+                        obs[card_id][15 + player.player_id] = 1
 
         extracted_state['obs'] = np.array(obs, dtype=np.float32)
         extracted_state['legal_actions'] = legal_actions
