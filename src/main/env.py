@@ -16,7 +16,7 @@ class CrewEnv(Env):
                         self.skip_signals)
         self.judger: Judger = Judger(game=game)
         super().__init__(game=game, config=config)
-        self.state_shape = [(40, 11 if self.skip_signals else 15) for _ in range(config['num_players'])]
+        self.state_shape = [(40, 15 if self.skip_signals else 19) for _ in range(config['num_players'])]
         self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(config['num_players'])]
 
     def get_payoffs(self):
