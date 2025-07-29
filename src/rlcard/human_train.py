@@ -27,7 +27,7 @@ def run_game(no_tasks):
     human_agent = HumanAgentGUI()
     agents = [human_agent]
     for i in range(env.num_players - 1):
-        agents.append(MCTSAgent(env, n_simulations=700))
+        agents.append(MCTSAgent(env, n_simulations=1000))
 
     env.set_agents(agents)
 
