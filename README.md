@@ -44,6 +44,8 @@ the-crew-rlcard-game
 Game rules are based on the official rules of The Crew card game. For detailed rules, refer to
 the [official rulebook](https://gramywplanszowki.pl/storage/games/668/files/zaloga-w-poszukiwaniu-dziewiatej-planety-instrukcja.pdf)
 
+IMPORTANT: The game scenario is to take some tasks with one communication token, no other restrictions apply.
+
 ## License
 
 This project is licensed under the Apache License 2.0. See the LICENSE file for more details.
