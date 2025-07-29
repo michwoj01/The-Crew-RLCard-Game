@@ -1,8 +1,10 @@
+import random
 import sys
+
+import numpy as np
 
 from src.rlcard.agents import HumanAgentGUI, MCTSAgent
 from src.rlcard.envs import register, make
-from src.rlcard.utils import set_seed
 
 
 def run_game(no_tasks):
@@ -19,7 +21,8 @@ def run_game(no_tasks):
         'is_clone': False,
     })
 
-    set_seed(42)
+    np.random.seed(42)
+    random.seed(42)
 
     human_agent = HumanAgentGUI()
     agents = [human_agent]

@@ -9,4 +9,4 @@ NO_TASKS=$1
 
 export PYTHONPATH=$(dirname "$0")
 
-python src/main/human_train.py $NO_TASKS
+python3 src/rlcard/human_train.py $NO_TASKS
