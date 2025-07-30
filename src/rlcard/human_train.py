@@ -30,8 +30,8 @@ def run_game(no_tasks):
 
     human_agent = HumanAgentGUI(log_file_path=log_file_path)
     agents = [human_agent,
-              MCTSAgent(env, n_simulations=1000),
               MCTSAgent(env, n_simulations=700),
+              MCTSAgent(env, n_simulations=1000),
               MCTSAgent(env, n_simulations=1000)]
 
     env.set_agents(agents)
