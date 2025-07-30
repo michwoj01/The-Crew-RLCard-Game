@@ -1,5 +1,6 @@
 import random
 import sys
+from datetime import datetime
 
 import numpy as np
 
@@ -24,21 +25,26 @@ def run_game(no_tasks):
     np.random.seed(42)
     random.seed(42)
 
-    human_agent = HumanAgentGUI()
-    agents = [human_agent]
-    for i in range(env.num_players - 1):
-        agents.append(MCTSAgent(env, n_simulations=1000))
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file_path = f"logs/crew_game_{timestamp}.txt"
+
+    human_agent = HumanAgentGUI(log_file_path=log_file_path)
+    agents = [human_agent,
+              MCTSAgent(env, n_simulations=1000),
+              MCTSAgent(env, n_simulations=700),
+              MCTSAgent(env, n_simulations=1000)]
 
     env.set_agents(agents)
 
     trajectories, payoffs = env.run(is_training=False)
 
-    if all(p > 0 for p in payoffs):
+    team_won = all(p > 0 for p in payoffs)
+    human_agent.log_game_result(team_won)
+
+    if team_won:
         print("🎉 Team won! All tasks completed successfully!")
-    elif all(p < 0 for p in payoffs):
-        print("😞 Team lost. Tasks were not completed correctly.")
     else:
-        print("🤔 Mixed results - some tasks completed.")
+        print("😞 Team lost. Tasks were not completed correctly.")
 
 
 if __name__ == '__main__':

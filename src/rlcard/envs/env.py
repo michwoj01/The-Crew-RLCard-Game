@@ -179,6 +179,8 @@ class CrewEnv:
         elif isinstance(action, SignalAction) or isinstance(action, SkipSignalAction):
             self.game.signal(action=action)
         else:
+            if self.game.play_card_count == 0 and not self.is_clone:
+                self.agents[0].log_player_hands(self.game.players)
             self.game.play_card(action=action)
         next_player_id = self.get_player_id()
 

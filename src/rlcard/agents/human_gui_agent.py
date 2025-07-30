@@ -1,12 +1,15 @@
+import os
 import queue
 import time
 import tkinter as tk
-from tkinter import ttk, font
+from datetime import datetime
+from tkinter import ttk, font, messagebox, filedialog
 
 import numpy as np
 
 from src.rlcard.envs.action_event import ActionEvent
 from src.rlcard.envs.card import CrewCard
+from src.rlcard.envs.player import CrewPlayer
 
 
 def get_suit_color(suit):
@@ -105,7 +108,7 @@ class CardButton(tk.Button):
 
 
 class CrewGameGUI:
-    def __init__(self, show_log=True):
+    def __init__(self, show_log=True, log_file_path=None):
         self.signals_labels: dict[int, tk.Label] = {}
         self.tasks_labels: dict[int, tk.Label] = {}
         self.trick_labels: dict[int, tk.Label] = {}
@@ -119,10 +122,36 @@ class CrewGameGUI:
         self.current_state = None
         self.move_counter = 0
 
+        # File logging setup
+        self.log_file_path = log_file_path
+        self.log_file = None
+        self.auto_save_enabled = True
+
+        if self.log_file_path:
+            self.setup_log_file()
+
         # No separate game log window
         self.game_log = None
 
         self.setup_ui()
+
+    def setup_log_file(self):
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(self.log_file_path), exist_ok=True)
+
+            self.log_file = open(self.log_file_path, 'w', encoding='utf-8')
+
+            # Write header
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.log_file.write(f"=== The Crew Game Log ===\n")
+            self.log_file.write(f"Started: {timestamp}\n")
+            self.log_file.write(f"{'=' * 50}\n\n")
+            self.log_file.flush()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not create log file: {e}")
+            self.log_file = None
 
     def setup_ui(self):
         # Main container
@@ -273,6 +302,15 @@ class CrewGameGUI:
 
         actions_frame.columnconfigure(0, weight=1)
 
+    def write_to_file(self, text):
+        """Write text to the log file if enabled"""
+        if self.log_file and self.auto_save_enabled:
+            try:
+                self.log_file.write(text)
+                self.log_file.flush()  # Ensure immediate write
+            except Exception as e:
+                print(f"Error writing to log file: {e}")
+
     def update_game_state(self, state, player_id=None):
         """Update the GUI with the current game state"""
         self.current_state = state
@@ -333,18 +371,53 @@ class CrewGameGUI:
         move_text = f"[{timestamp}] {prefix} Player {player_id}: {action_text}\n"
         self.log_text_widget.insert(tk.END, move_text)
 
+        # Write to file
+        file_text = f"[{timestamp}] Move {self.move_counter:03d} - Player {player_id}: {action_text}\n"
+        self.write_to_file(file_text)
+
         # Auto-scroll to bottom
         self.log_text_widget.see(tk.END)
         self.log_text_widget.config(state=tk.DISABLED)
 
-    def log_phase_change(self, phase_text):
-        """Log a phase change"""
+    def log_game_result(self, team_won):
+        timestamp = time.strftime("%H:%M:%S")
+
+        # Determine result text and emoji
+        if team_won:
+            result_emoji = "🎉"
+            result_text = "TEAM VICTORY!"
+            detailed_text = "All tasks completed successfully!"
+        else:
+            result_emoji = "😞"
+            result_text = "TEAM DEFEAT"
+            detailed_text = "Tasks were not completed correctly."
+
         self.log_text_widget.config(state=tk.NORMAL)
-        separator = "─" * 30 + "\n"
-        phase_line = f"🔄 {phase_text}\n"
-        self.log_text_widget.insert(tk.END, f"\n{separator}{phase_line}{separator}\n")
+        separator = "═" * 40 + "\n"
+        result_line = f"{result_emoji} {result_text} {result_emoji}\n"
+        detail_line = f"📊 {detailed_text}\n"
+
+        display_text = f"\n{separator}{result_line}{detail_line}"
+        display_text += separator + "\n"
+
+        self.log_text_widget.insert(tk.END, display_text)
         self.log_text_widget.see(tk.END)
         self.log_text_widget.config(state=tk.DISABLED)
+
+        # Write to file
+        file_text = f"\n[{timestamp}] ========== GAME RESULT ==========\n"
+        file_text += f"[{timestamp}] {result_text}: {detailed_text}\n"
+        file_text += f"[{timestamp}] Total moves in game: {self.move_counter}\n"
+        file_text += f"[{timestamp}] ===============================\n"
+
+        self.write_to_file(file_text)
+
+    def log_player_hands(self, players: list[CrewPlayer]):
+        for player in players:
+            player_id = player.player_id
+            hand_cards = [str(card) for card in player.hand]
+            file_text = f"Player {player_id} Hand: {', '.join(hand_cards)}\n"
+            self.write_to_file(file_text)
 
     def clear_log(self):
         """Clear the log"""
@@ -352,6 +425,36 @@ class CrewGameGUI:
         self.log_text_widget.delete(1.0, tk.END)
         self.log_text_widget.config(state=tk.DISABLED)
         self.move_counter = 0
+
+    def save_log_as(self):
+        """Save the current log to a file"""
+        if not self.log_text_widget.get(1.0, tk.END).strip():
+            messagebox.showwarning("Warning", "No log content to save!")
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+            title="Save Game Log"
+        )
+
+        if file_path:
+            try:
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    # Write header
+                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    f.write(f"=== The Crew Game Log ===\n")
+                    f.write(f"Saved: {timestamp}\n")
+                    f.write(f"Total Moves: {self.move_counter}\n")
+                    f.write(f"{'=' * 50}\n\n")
+
+                    # Get content from text widget (clean version for file)
+                    content = self.log_text_widget.get(1.0, tk.END)
+                    f.write(content)
+
+                messagebox.showinfo("Success", f"Log saved to {file_path}")
+            except Exception as e:
+                messagebox.showerror("Error", f"Could not save log: {e}")
 
     def clear_hand(self):
         for widget in self.hand_cards_frame.winfo_children():
@@ -506,23 +609,38 @@ class CrewGameGUI:
                 continue
 
     def on_closing(self):
+        # Close log file if open
+        if self.log_file:
+            try:
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.log_file.write(f"\n{'=' * 50}\n")
+                self.log_file.write(f"Game ended: {timestamp}\n")
+                self.log_file.write(f"Total moves logged: {self.move_counter}\n")
+                self.log_file.close()
+            except Exception as e:
+                print(f"Error closing log file: {e}")
+
         self.root.destroy()
 
 
 class HumanAgentGUI:
 
-    def __init__(self):
+    def __init__(self, log_file_path=None):
         self.use_raw = False
         self.gui = None
         self.move_buffer = []  # Buffer moves before GUI is created
+        self.log_file_path = log_file_path
 
     def create_gui(self):
         if not self.gui:
-            self.gui = CrewGameGUI()
+            self.gui = CrewGameGUI(log_file_path=self.log_file_path)
             # Replay buffered moves
             for player_id, action_id in self.move_buffer:
-                action_text = str(ActionEvent.from_action_id(action_id))
-                self.gui.log_player_move(player_id, action_text)
+                if player_id == 'hands':
+                    self.gui.log_player_hands(action_id)
+                else:
+                    action_text = str(ActionEvent.from_action_id(action_id))
+                    self.gui.log_player_move(player_id, action_text)
             self.move_buffer.clear()
 
     def step(self, state) -> int:
@@ -541,10 +659,6 @@ class HumanAgentGUI:
                 action_text = str(ActionEvent.from_action_id(action_taken))
                 self.gui.log_player_move(player_id, action_text)
 
-    def log_phase_change(self, phase_text):
-        if self.gui:
-            self.gui.log_phase_change(phase_text)
-
     def log_move(self, player_id, action_id):
         if self.gui:
             action_text = str(ActionEvent.from_action_id(action_id))
@@ -552,6 +666,17 @@ class HumanAgentGUI:
         else:
             # Buffer the move if GUI isn't ready yet
             self.move_buffer.append((player_id, action_id))
+
+    def log_game_result(self, team_won):
+        if self.gui:
+            self.gui.log_game_result(team_won)
+
+    def log_player_hands(self, players):
+        if self.gui:
+            self.gui.log_player_hands(players)
+        else:
+            # Buffer the player hands if GUI isn't ready yet
+            self.move_buffer.append(('hands', players))
 
     def update_state_only(self, state):
         if self.gui:

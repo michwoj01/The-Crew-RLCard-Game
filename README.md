@@ -20,10 +20,9 @@ the-crew-rlcard-game
 
 ## Setup Instructions
 
-1. Clone the repository:
+1. After unpacking the ZIP, go to the project directory:
 
    ```bash
-   git clone git@github.com:michwoj01/The-Crew-RLCard-Game.git
    cd the-crew-rlcard-game
    ```
 
@@ -33,11 +32,16 @@ the-crew-rlcard-game
    pip install -r requirements.txt
    ```
 
-3. Run the game:
+3. Run the game with number of tasks between 1 and 4:
 
    ```bash
    ./run_game.sh <number_of_tasks>
    ```
+
+4. After game is finished, window will be closed automatically and either:
+   `😞 Team lost. Tasks were not completed correctly.` or `🎉 Team won! All tasks completed successfully!` will be
+   displayed in the terminal.
+   If you want to play again, just run the script again with the same or different number of tasks.
 
 ## Game Rules
 

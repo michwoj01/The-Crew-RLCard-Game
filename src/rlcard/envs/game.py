@@ -108,9 +108,6 @@ class Game:
                 elif trick_card.suit == CrewCard.trump_suit:
                     leading_card = trick_card
                     trick_winner = trick_player
-            # if not self.is_clone:
-            #     print(f'Trick {self.trick_count + 1} won by player {trick_winner} with card {leading_card}:'
-            #           f'{[str(trick_card) for trick_card in trick_moves]}')
             self.starting_player_id = trick_winner
             self.current_player_id = self.starting_player_id
             self.check_tasks(trick_winner, [move.card for move in trick_moves])
