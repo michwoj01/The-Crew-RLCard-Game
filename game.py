@@ -1,10 +1,10 @@
 from typing import List
 
-from src.rlcard.envs.action_event import PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
-from src.rlcard.envs.card import CrewCard, CrewTask
-from src.rlcard.envs.dealer import Dealer
-from src.rlcard.envs.move import PlayCardMove, CrewMove, ChooseTaskMove, SignalMove, SkipMove
-from src.rlcard.envs.player import CrewPlayer
+from action_event import PlayCardAction, ChooseTaskAction, SignalAction, SkipSignalAction
+from card import CrewCard, CrewTask
+from dealer import Dealer
+from move import PlayCardMove, CrewMove, ChooseTaskMove, SignalMove, SkipMove
+from player import CrewPlayer
 
 
 class Game:

@@ -1,4 +1,4 @@
-from src.rlcard.envs.card import CrewCard, SignalType
+from card import CrewCard, SignalType
 
 
 class ActionEvent(object):
@@ -54,6 +54,9 @@ class PlayCardAction(ActionEvent):
     def __repr__(self):
         return f"{self.card}"
 
+    def full_name(self):
+        return f"{self.card.full_suit_name()}"
+
 
 class ChooseTaskAction(ActionEvent):
 
@@ -67,6 +70,9 @@ class ChooseTaskAction(ActionEvent):
 
     def __repr__(self):
         return f"task - {self.card}"
+
+    def full_name(self):
+        return f"task - {self.card.full_suit_name()}"
 
 
 class SignalAction(ActionEvent):
@@ -84,6 +90,9 @@ class SignalAction(ActionEvent):
 
     def __repr__(self):
         return f"sig - {self.card} - {self.signal_type}"
+
+    def full_name(self):
+        return f"sig - {self.card.full_suit_name()} - {self.signal_type}"
 
 
 class SkipSignalAction(ActionEvent):

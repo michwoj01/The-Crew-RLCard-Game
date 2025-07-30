@@ -1,4 +1,4 @@
-from src.rlcard.envs.card import CrewCard, SignalType
+from card import CrewCard, SignalType
 
 
 class CrewPlayer:

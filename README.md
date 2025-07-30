@@ -39,9 +39,12 @@ the-crew-rlcard-game
    ```
 
 4. After game is finished, window will be closed automatically and either:
-   `😞 Team lost. Tasks were not completed correctly.` or `🎉 Team won! All tasks completed successfully!` will be
+   `Team lost. Tasks were not completed correctly.` or `Team won! All tasks completed successfully!` will be
    displayed in the terminal.
    If you want to play again, just run the script again with the same or different number of tasks.
+
+5. Logs will be saved in the `logs/` directory. Each game will create a new log file with a timestamp. After you
+   complete your beta testing, please archive the `logs/` directory and send it to the project maintainers for analysis.
 
 ## Game Rules
 

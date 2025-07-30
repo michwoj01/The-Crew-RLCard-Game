@@ -1,8 +1,8 @@
 import numpy as np
 
-from src.rlcard.envs.action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
-from src.rlcard.envs.game import Game
-from src.rlcard.envs.judger import Judger
+from action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
+from game import Game
+from judger import Judger
 
 
 class CrewEnv:

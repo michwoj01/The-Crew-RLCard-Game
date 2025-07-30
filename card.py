@@ -1,6 +1,6 @@
 from enum import Enum
 
-from src.rlcard.utils import Card
+from base import Card
 
 
 class SignalType(Enum):
@@ -14,6 +14,7 @@ class SignalType(Enum):
 
 class CrewCard(Card):
     suits = ['B', 'G', 'Y', 'P', 'R']
+    full_suits = ['Blue', 'Green', 'Yellow', 'Pink', 'Rocket']
     trump_suit = 'R'
     ranks = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 
@@ -36,6 +37,9 @@ class CrewCard(Card):
 
     def __repr__(self):
         return f'{self.suit}{self.rank}'
+
+    def full_suit_name(self):
+        return f'{CrewCard.full_suits[self.suit_index]}-{self.rank}'
 
 
 _deck = [CrewCard(suit=suit, rank=rank) for suit in CrewCard.suits[:4] for rank in CrewCard.ranks] + \

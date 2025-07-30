@@ -1,4 +1,5 @@
 import os
+import platform
 import queue
 import time
 import tkinter as tk
@@ -7,9 +8,9 @@ from tkinter import ttk, font, messagebox, filedialog
 
 import numpy as np
 
-from src.rlcard.envs.action_event import ActionEvent
-from src.rlcard.envs.card import CrewCard
-from src.rlcard.envs.player import CrewPlayer
+from action_event import ActionEvent
+from card import CrewCard
+from player import CrewPlayer
 
 
 def get_suit_color(suit):
@@ -18,7 +19,7 @@ def get_suit_color(suit):
         'Y': '#cc9900',
         'P': '#9900cc',
         'G': '#009900',
-        'R': '#cc0000'
+        'R': '#000000'
     }
     return colors.get(suit, 'black')
 
@@ -60,8 +61,11 @@ class CardButton(tk.Button):
         else:
             card_str = str(ActionEvent.from_action_id(card_id))
 
-        fg_color = "#333333"
         # Parse card info and set colors
+        if platform.system() == 'Darwin':
+            fg_color = 'black'
+        else:
+            fg_color = 'white'
         if "skip" in card_str.lower():
             bg_color = "#f0f0f0"
             text = "skip"
@@ -412,6 +416,40 @@ class CrewGameGUI:
 
         self.write_to_file(file_text)
 
+    def show_end_popup(self, team_won: bool):
+        bg_color = '#006600' if team_won else '#660000'
+        result_text = " TEAM VICTORY! " if team_won else " TEAM DEFEAT "
+
+        popup = tk.Toplevel(self.root)
+        popup.overrideredirect(True)
+        popup.attributes('-topmost', True)
+        popup.configure(bg=bg_color)
+
+        self.root.update_idletasks()
+        w = 400;
+        h = 200
+        x = self.root.winfo_x() + (self.root.winfo_width() - w) // 2
+        y = self.root.winfo_y() + (self.root.winfo_height() - h) // 2
+        popup.geometry(f"{w}x{h}+{x}+{y}")
+
+        lbl = tk.Label(
+            popup,
+            text=result_text,
+            font=("Arial", 36, "bold"),
+            fg="white",
+            bg=bg_color
+        )
+        lbl.pack(expand=True, fill="both")
+
+        def close_all():
+            try:
+                popup.destroy()
+            except:
+                pass
+            self.root.destroy()
+
+        popup.after(5000, close_all)
+
     def log_player_hands(self, players: list[CrewPlayer]):
         for player in players:
             player_id = player.player_id
@@ -619,7 +657,7 @@ class CrewGameGUI:
                 self.log_file.close()
             except Exception as e:
                 print(f"Error closing log file: {e}")
-
+        self.root.quit()
         self.root.destroy()
 
 
@@ -651,17 +689,9 @@ class HumanAgentGUI:
         selected_action_id = self.gui.wait_for_action()
         return selected_action_id
 
-    def update_for_ai_turn(self, state, player_id, action_taken=None):
-        if self.gui:
-            self.gui.update_game_state(state, player_id=player_id)
-
-            if action_taken is not None:
-                action_text = str(ActionEvent.from_action_id(action_taken))
-                self.gui.log_player_move(player_id, action_text)
-
     def log_move(self, player_id, action_id):
         if self.gui:
-            action_text = str(ActionEvent.from_action_id(action_id))
+            action_text = ActionEvent.from_action_id(action_id).full_name()
             self.gui.log_player_move(player_id, action_text)
         else:
             # Buffer the move if GUI isn't ready yet
@@ -670,6 +700,8 @@ class HumanAgentGUI:
     def log_game_result(self, team_won):
         if self.gui:
             self.gui.log_game_result(team_won)
+            self.gui.show_end_popup(team_won)
+            self.gui.root.mainloop()
 
     def log_player_hands(self, players):
         if self.gui:
