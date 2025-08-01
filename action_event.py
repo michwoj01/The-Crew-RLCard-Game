@@ -105,3 +105,6 @@ class SkipSignalAction(ActionEvent):
 
     def __repr__(self):
         return "skip signal"
+
+    def full_name(self):
+        return "skip signal"

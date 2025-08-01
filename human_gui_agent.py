@@ -67,7 +67,7 @@ class CardButton(tk.Button):
         else:
             fg_color = 'white'
         if "skip" in card_str.lower():
-            bg_color = "#f0f0f0"
+            bg_color = "#404040"
             text = "skip"
         elif 'sig' in card_str.lower():
             suit = card_str[6] if card_str else ''
@@ -94,7 +94,7 @@ class CardButton(tk.Button):
             background=bg_color,
             fg=fg_color,
             font=("Arial", 9),
-            width=4,
+            width=5,
             height=2,
             relief="raised",
             **kwargs
@@ -322,13 +322,15 @@ class CrewGameGUI:
         raw_legal_actions = state['legal_actions']
         offset = 0
 
-        # Clear previous displays
-        self.clear_hand()
         self.clear_actions()
 
-        # Update hand
-        hand = [i for i in range(40) if raw_obs[offset + i] == 1]
-        self.display_hand(hand)
+        if player_id is not None:
+            # Clear previous displays
+            self.clear_hand()
+
+            # Update hand
+            hand = [i for i in range(40) if raw_obs[offset + i] == 1]
+            self.display_hand(hand)
         offset += 40
 
         # Update trick
@@ -629,6 +631,53 @@ class CrewGameGUI:
                 signal_text = f"Player {pid}: No signal"
                 self.signals_labels[pid].config(text=signal_text, fg="gray")
 
+    def log_trick(self, trick_moves):
+        """Display completed trick in GUI, wait 1.5s, clear, and log winner"""
+        # Display all 4 cards in GUI
+        for move in trick_moves:
+            card = move.card
+            player_id = move.player_id
+            card_str = str(card)
+            suit = card_str[0] if card_str else ''
+            rank = card_str[1:] if len(card_str) > 1 else ''
+
+            bg_color = get_suit_color(suit)
+            self.trick_labels[player_id].config(
+                text=rank,
+                fg="white",
+                bg=bg_color
+            )
+
+        # Update GUI and wait 1.5 seconds
+        self.root.update()
+
+        # Determine winner and log
+        leading_card = trick_moves[0].card
+        trick_winner = trick_moves[0].player_id
+
+        for move in trick_moves[1:]:
+            card = move.card
+            if card.suit == leading_card.suit:
+                if card.rank > leading_card.rank:
+                    leading_card = card
+                    trick_winner = move.player_id
+            elif card.suit == CrewCard.trump_suit:
+                leading_card = card
+                trick_winner = move.player_id
+
+        # Log winner
+        timestamp = time.strftime("%H:%M:%S")
+        self.log_text_widget.config(state=tk.NORMAL)
+        display_text = f"[{timestamp}] 🏆 Player {trick_winner} wins the trick\n"
+        self.log_text_widget.insert(tk.END, display_text)
+        self.log_text_widget.see(tk.END)
+        self.log_text_widget.config(state=tk.DISABLED)
+
+        file_text = f"[{timestamp}] Player {trick_winner} wins the trick\n"
+        self.write_to_file(file_text)
+
+        time.sleep(1.5)
+
     def on_action_selected(self, action_id):
         self.selected_action = action_id
         self.action_queue.put(action_id)
@@ -665,54 +714,31 @@ class HumanAgentGUI:
 
     def __init__(self, log_file_path=None):
         self.use_raw = False
-        self.gui = None
-        self.move_buffer = []  # Buffer moves before GUI is created
         self.log_file_path = log_file_path
-
-    def create_gui(self):
-        if not self.gui:
-            self.gui = CrewGameGUI(log_file_path=self.log_file_path)
-            # Replay buffered moves
-            for player_id, action_id in self.move_buffer:
-                if player_id == 'hands':
-                    self.gui.log_player_hands(action_id)
-                else:
-                    action_text = str(ActionEvent.from_action_id(action_id))
-                    self.gui.log_player_move(player_id, action_text)
-            self.move_buffer.clear()
+        self.gui = CrewGameGUI(log_file_path=self.log_file_path)
 
     def step(self, state) -> int:
-        if not self.gui:
-            self.create_gui()
-
         self.gui.update_game_state(state, player_id=0)
         selected_action_id = self.gui.wait_for_action()
         return selected_action_id
 
     def log_move(self, player_id, action_id):
-        if self.gui:
-            action_text = ActionEvent.from_action_id(action_id).full_name()
-            self.gui.log_player_move(player_id, action_text)
-        else:
-            # Buffer the move if GUI isn't ready yet
-            self.move_buffer.append((player_id, action_id))
+        action_text = ActionEvent.from_action_id(action_id).full_name()
+        self.gui.log_player_move(player_id, action_text)
 
     def log_game_result(self, team_won):
-        if self.gui:
-            self.gui.log_game_result(team_won)
-            self.gui.show_end_popup(team_won)
-            self.gui.root.mainloop()
+        self.gui.log_game_result(team_won)
+        self.gui.show_end_popup(team_won)
+        self.gui.root.mainloop()
 
     def log_player_hands(self, players):
-        if self.gui:
-            self.gui.log_player_hands(players)
-        else:
-            # Buffer the player hands if GUI isn't ready yet
-            self.move_buffer.append(('hands', players))
+        self.gui.log_player_hands(players)
 
     def update_state_only(self, state):
-        if self.gui:
-            self.gui.update_game_state(state, player_id=None)
+        self.gui.update_game_state(state, player_id=None)
 
     def eval_step(self, state):
         return self.step(state), {}
+
+    def log_trick(self, trick_moves):
+        self.gui.log_trick(trick_moves)

@@ -45,8 +45,9 @@ class Game:
         self.tasks: List[CrewTask] = []
         self.trick_count: int = 0
         self.is_clone = is_clone
+        self.human_agent = None
 
-    def init_game(self):
+    def init_game(self, human_agent):
         self.dealer: Dealer = Dealer(np_random=self.np_random, no_tasks=self.no_tasks,
                                      eval_mode=self.eval_mode, eval_hand_id=self.eval_hand_id)
         for player_id in range(self.num_players):
@@ -58,6 +59,7 @@ class Game:
             None
         ).player_id
         self.current_player_id = self.starting_player_id
+        self.human_agent = human_agent
 
     def is_over(self) -> bool:
         card_over = True
@@ -96,6 +98,8 @@ class Game:
         trick_moves = self.get_trick_moves()
         self.payoffs[self.current_player_id].append(0)
         if len(trick_moves) == 4:
+            if not self.is_clone:
+                self.human_agent.log_trick(trick_moves)
             leading_card = trick_moves[0].card
             trick_winner = trick_moves[0].player_id
             for move in trick_moves[1:]:

@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from action_event import ActionEvent, ChooseTaskAction, SignalAction, SkipSignalAction
@@ -164,23 +166,27 @@ class CrewEnv:
             no_tasks=self.no_tasks,
             np_random=self.np_random,
             skip_signals=self.skip_signals)
-        self.game.init_game()
+        self.game.init_game(self.agents[0])
         current_player_id = self.get_player_id()
         return {}, current_player_id
 
     def step(self, action_id: int):
-        if not self.is_clone:
-            self.agents[0].log_move(self.get_player_id(), action_id)
         action = self._decode_action(action_id)
         self.timestep += 1
         self.action_recorder.append((self.get_player_id(), action))
         if isinstance(action, ChooseTaskAction):
+            if not self.is_clone:
+                self.agents[0].log_move(self.get_player_id(), action_id)
             self.game.choose_task(action=action)
         elif isinstance(action, SignalAction) or isinstance(action, SkipSignalAction):
+            if not self.is_clone:
+                self.agents[0].log_move(self.get_player_id(), action_id)
             self.game.signal(action=action)
         else:
             if self.game.play_card_count == 0 and not self.is_clone:
                 self.agents[0].log_player_hands(self.game.players)
+            if not self.is_clone:
+                self.agents[0].log_move(self.get_player_id(), action_id)
             self.game.play_card(action=action)
         next_player_id = self.get_player_id()
 
@@ -197,6 +203,9 @@ class CrewEnv:
         trajectories[player_id].append(state)
         while not self.game.is_over():
             # Agent plays
+            if player_id != 0 and not self.is_clone:
+                self.agents[0].update_state_only(state)
+                time.sleep(1)
             if not is_training:
                 action_id, _ = self.agents[player_id].eval_step(state)
             else:

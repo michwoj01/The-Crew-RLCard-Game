@@ -16,7 +16,7 @@ def run_game():
 
     env = make('crew', config={
         'num_players': 4,
-        'no_tasks': 1,
+        'no_tasks': 4,
         'skip_signals': False,
         'algorithm': 'mcts',
         'is_clone': False,
@@ -30,9 +30,9 @@ def run_game():
 
     human_agent = HumanAgentGUI(log_file_path=log_file_path)
     agents = [human_agent,
+              MCTSAgent(env, n_simulations=700),
               MCTSAgent(env, n_simulations=1000),
-              MCTSAgent(env, n_simulations=1000),
-              MCTSAgent(env, n_simulations=700)]
+              MCTSAgent(env, n_simulations=1000)]
 
     env.set_agents(agents)
 
