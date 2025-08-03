@@ -16,7 +16,10 @@ class CrewEnv(Env):
                         self.skip_signals)
         self.judger: Judger = Judger(game=game)
         super().__init__(game=game, config=config)
-        self.state_shape = [(40, 15 if self.skip_signals else 19) for _ in range(config['num_players'])]
+        # BIG
+        # self.state_shape = [(40, 15 if self.skip_signals else 19) for _ in range(config['num_players'])]
+        # SMALL
+        self.state_shape = [(40, 10) for _ in range(config['num_players'])]
         self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(config['num_players'])]
 
     def get_payoffs(self):
@@ -46,49 +49,84 @@ class CrewEnv(Env):
         current_player_id = game.get_player_id()
         deck = CrewCard.get_deck()
 
-        obs = [[0 for _ in range(15 if self.skip_signals else 19)] for _ in range(40)]
+        # BIG
+        # obs = [[0 for _ in range(15 if self.skip_signals else 19)] for _ in range(40)]
+        #
+        # if not game.is_over():
+        #     for card in game.round.players[current_player_id].hand:
+        #         obs[card.card_id][0] = 1
+        #     trick_moves = game.round.get_trick_moves()
+        #     if len(trick_moves) > 0:
+        #         first_card_suit = trick_moves[0].card.suit_index
+        #         if first_card_suit == 4:
+        #             for i in range(4):
+        #                 obs[36 + i][1] = 1
+        #         else:
+        #             for i in range(9):
+        #                 obs[first_card_suit * 9 + i][1] = 1
+        #     for ind, val in enumerate(game.round.card_record):
+        #         if val > 0:
+        #             obs[ind][2] = 1
+        #     for move in trick_moves:
+        #         player_id = move.player_id
+        #         card_id = move.card.card_id
+        #         obs[card_id][3 + player_id] = 1
+        #     for task in game.round.tasks:
+        #         player_id = task.owner
+        #         card_id = task.card.card_id
+        #         obs[card_id][7 + player_id] = 1
+        #     # META
+        #     for card in deck:  # weak / medium / strong
+        #         strength = (card.rank - 1) // 3
+        #         if card.suit == CrewCard.trump_suit:
+        #             strength = 3
+        #         obs[card.card_id][11 + strength] = 1
+        #     if len(trick_moves) > 0:  # can take
+        #         first_card = trick_moves[0].card
+        #         for card in deck:
+        #             if (card.suit == first_card.suit and card.rank > first_card.rank) or \
+        #                     (card.suit == CrewCard.trump_suit and first_card.suit != CrewCard.trump_suit):
+        #                 obs[card.card_id][14] = 1
+        #     # END
+        #     if not self.skip_signals:
+        #         for player in game.round.players:
+        #             if player.signal:
+        #                 card_id = player.signal[0].card_id
+        #                 obs[card_id][15 + player.player_id] = 1
+
+        # SMALL
+        obs = [[0 for _ in range(10)] for _ in range(40)]
 
         if not game.is_over():
             for card in game.round.players[current_player_id].hand:
                 obs[card.card_id][0] = 1
             trick_moves = game.round.get_trick_moves()
-            if len(trick_moves) > 0:
-                first_card_suit = trick_moves[0].card.suit_index
-                if first_card_suit == 4:
-                    for i in range(4):
-                        obs[36 + i][1] = 1
-                else:
-                    for i in range(9):
-                        obs[first_card_suit * 9 + i][1] = 1
-            for ind, val in enumerate(game.round.card_record):
-                if val > 0:
-                    obs[ind][2] = 1
             for move in trick_moves:
-                player_id = move.player_id
                 card_id = move.card.card_id
-                obs[card_id][3 + player_id] = 1
+                obs[card_id][1] = 1
             for task in game.round.tasks:
                 player_id = task.owner
                 card_id = task.card.card_id
-                obs[card_id][7 + player_id] = 1
+                if player_id == current_player_id:
+                    obs[card_id][2] = 1
+            for task in game.round.tasks:
+                player_id = task.owner
+                card_id = task.card.card_id
+                if player_id != current_player_id:
+                    obs[card_id][3] = 1
             # META
             for card in deck:  # weak / medium / strong
-                strength = (card.rank - 1) // 3
+                strength = card.rank // 2
                 if card.suit == CrewCard.trump_suit:
-                    strength = 3
-                obs[card.card_id][11 + strength] = 1
+                    strength = 4
+                obs[card.card_id][4 + strength] = 1
             if len(trick_moves) > 0:  # can take
                 first_card = trick_moves[0].card
                 for card in deck:
                     if (card.suit == first_card.suit and card.rank > first_card.rank) or \
                             (card.suit == CrewCard.trump_suit and first_card.suit != CrewCard.trump_suit):
-                        obs[card.card_id][14] = 1
+                        obs[card.card_id][9] = 1
             # END
-            if not self.skip_signals:
-                for player in game.round.players:
-                    if player.signal:
-                        card_id = player.signal[0].card_id
-                        obs[card_id][15 + player.player_id] = 1
 
         extracted_state['obs'] = np.array(obs, dtype=np.float32)
         extracted_state['legal_actions'] = legal_actions

@@ -73,7 +73,7 @@ class DQNAgent(object):
         if tmp >= 0 and tmp % self.train_every == 0:
             self.train()
 
-    def step(self, state):
+    def step(self, state):  # DEBUG
         q_values = self.predict(state)
         epsilon = self.epsilons[min(self.total_t, self.epsilon_decay_steps - 1)]
         legal_actions = state['legal_actions']
@@ -286,7 +286,9 @@ class Estimator(object):
 
 
 class EstimatorNetwork(nn.Module):
-    def __init__(self, num_actions=2, state_shape=(40, 15), mlp_layers=None):
+    def __init__(self, num_actions=2, state_shape=(40, 10), mlp_layers=None):
+        out_channels = 8
+
         super(EstimatorNetwork, self).__init__()
         self.num_actions = num_actions
         self.num_cards, self.card_feature_dims = state_shape  # State dimensions
@@ -294,15 +296,13 @@ class EstimatorNetwork(nn.Module):
         self.mlp_layers = [64]
         # Revised Convolutional layers with new structure
         self.conv_layers = nn.Sequential(
-            nn.Conv1d(in_channels=self.card_feature_dims, out_channels=10, kernel_size=1),
-            nn.ReLU(),
-            nn.Conv1d(in_channels=10, out_channels=4, kernel_size=1),
+            nn.Conv1d(in_channels=10, out_channels=out_channels, kernel_size=1),
             nn.ReLU()
         )
         # Flatten layer to prepare data for the linear layers
         self.flatten = nn.Flatten(start_dim=1)
         # Building fully connected layers from flattened [Batch, 4 * num_cards] to num_actions
-        flattened_dim = 4 * self.num_cards  # Since we have 4 output channels after convolutions
+        flattened_dim = out_channels * self.num_cards  # Since we have 4 output channels after convolutions
         layer_dims = [flattened_dim] + self.mlp_layers + [self.num_actions]  # Including output layer
         fc = []
         for i in range(len(layer_dims) - 1):

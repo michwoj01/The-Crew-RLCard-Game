@@ -112,7 +112,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # training parameters
-    parser.add_argument('--num_episodes', type=int, default=300_000)  # 1000 for 1 v 3
+    parser.add_argument('--num_episodes', type=int, default=500_000)  # 1000 for 1 v 3
     parser.add_argument('--num_eval_games', type=int, default=100)  # 5 for 1 v 3
     parser.add_argument('--evaluate_every', type=int, default=1000)  # 20 for 1 v 3
     parser.add_argument("--load_checkpoint_path", type=str, default="")
@@ -149,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_players", type=int, default=4)
     parser.add_argument("--no_tasks", type=int, default=2)
     parser.add_argument("--fixed_tasks", type=bool, default=False)
-    parser.add_argument("--skip_signals", type=bool, default=False)
+    parser.add_argument("--skip_signals", type=bool, default=True)
     parser.add_argument("--n_simulations", type=int, default=100)
 
     args = parser.parse_args()
