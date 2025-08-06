@@ -2,6 +2,8 @@ import random
 
 import math
 
+from src.rlcard.utils import reorganize
+
 
 class TreeNode:
     def __init__(self, parent, env, action_taken=None):
@@ -78,12 +80,29 @@ class TreeNode:
         payoffs = simulation_env.get_payoffs()
         return payoffs[original_player]
 
+    def simulate_with_dqn(self, agent):
+        simulation_env = self.env.clone()
+        original_player = simulation_env.get_player_id()
+
+        agents = [agent for _ in range(simulation_env.num_players)]
+        simulation_env.set_agents(agents)
+        simulation_env.algorithm = 'dqn'
+        trajectories, payoffs = simulation_env.run_without_reset(original_player, is_training=True)
+        trajectories = reorganize(trajectories, payoffs)
+
+        for ts in trajectories[0]:
+            agents[0].feed(ts)
+
+        simulation_env.algorithm = 'mcts'
+        return simulation_env.get_payoffs()[original_player]
+
 
 class MCTS:
-    def __init__(self, env, n_simulations=100, c_param=1.414):
+    def __init__(self, env, dqn_agent, n_simulations=100, c_param=1.414):
         self.n_simulations = n_simulations
         self.env = env
         self.c_param = c_param
+        self.dqn_agent = dqn_agent
 
     def run(self, state):
         """Run MCTS and return best action"""
@@ -117,7 +136,8 @@ class MCTS:
                     path.append(node)
 
             # Simulation: random rollout from this node
-            result = node.simulate()
+            # result = node.simulate()  # RANDOM
+            result = node.simulate_with_dqn(self.dqn_agent)  # DQN
 
             # Backpropagation: update all nodes in path
             node.backpropagate(result, original_player)
@@ -147,7 +167,8 @@ class MCTS:
                 if child:
                     node = child
 
-            result = node.simulate()
+            # result = node.simulate()  # RANDOM
+            result = node.simulate_with_dqn(self.dqn_agent)  # DQN
             node.backpropagate(result, root_env.get_player_id())
 
         stats = {}
@@ -161,18 +182,19 @@ class MCTS:
 
 
 class MCTSAgent:
-    def __init__(self, env, n_simulations=100, c_param=1.414):
+    def __init__(self, env, dqn_agent, n_simulations=100, c_param=1.414):
         self.env = env
         self.n_simulations = n_simulations
         self.c_param = c_param
         self.use_raw = False
+        self.dqn_agent = dqn_agent
 
     def step(self, state):
         legal_actions = state['legal_actions']
         if len(legal_actions) <= 1:
             return legal_actions[0] if legal_actions else None
 
-        mcts = MCTS(self.env, self.n_simulations, self.c_param)
+        mcts = MCTS(self.env, self.dqn_agent, self.n_simulations, self.c_param)
         action_id = mcts.run(state)
         return action_id
 

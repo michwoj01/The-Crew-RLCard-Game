@@ -212,7 +212,7 @@ class Estimator(object):
         self.device = device
 
         # set up Q model and place it in eval mode
-        qnet = EstimatorNetwork(num_actions, state_shape, mlp_layers)
+        qnet = EstimatorNetwork0(num_actions, state_shape, mlp_layers)
         qnet = qnet.to(self.device)
         self.qnet = qnet
         self.qnet.eval()
@@ -285,9 +285,35 @@ class Estimator(object):
         return estimator
 
 
+class EstimatorNetwork0(nn.Module):
+    def __init__(self, num_actions=2, state_shape=(40, 12), mlp_layers=None):
+        super(EstimatorNetwork0, self).__init__()
+        self.num_cards, self.card_feature_dims = state_shape  # State dimensions
+
+        # Defined Convolutional layers with reduced structure
+        self.conv_layers = nn.Sequential(
+            nn.Conv1d(in_channels=self.card_feature_dims, out_channels=8, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=8, out_channels=4, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=4, out_channels=1, kernel_size=1)  # No ReLU activation after last layer
+        )
+
+        # Flatten layer to prepare data for the output transposition
+        self.flatten = nn.Flatten(start_dim=1)
+
+    def forward(self, s):
+        # Expect s to be of shape [Batch, Num_cards, Card_features]
+        s = s.transpose(1, 2)  # Change to [Batch, Card_features, Num_cards] for Conv1d
+        s = self.conv_layers(s)
+        s = self.flatten(s)
+        s = torch.cat((s, s), dim=1)
+        return s
+
+
 class EstimatorNetwork(nn.Module):
     def __init__(self, num_actions=2, state_shape=(40, 10), mlp_layers=None):
-        out_channels = 8
+        out_channels = 4
 
         super(EstimatorNetwork, self).__init__()
         self.num_actions = num_actions
@@ -296,7 +322,9 @@ class EstimatorNetwork(nn.Module):
         self.mlp_layers = [64]
         # Revised Convolutional layers with new structure
         self.conv_layers = nn.Sequential(
-            nn.Conv1d(in_channels=10, out_channels=out_channels, kernel_size=1),
+            nn.Conv1d(in_channels=10, out_channels=8, kernel_size=1),
+            nn.ReLU(),
+            nn.Conv1d(in_channels=8, out_channels=out_channels, kernel_size=1),
             nn.ReLU()
         )
         # Flatten layer to prepare data for the linear layers

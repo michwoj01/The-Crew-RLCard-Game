@@ -85,6 +85,42 @@ class Env(object):
 
         return trajectories, payoffs
 
+    def run_without_reset(self, player_id, is_training=False):
+        trajectories = [[] for _ in range(self.num_players)]
+        state = self._extract_state({})
+
+        # Loop to play the game
+        trajectories[player_id].append(state)
+        while not self.is_over():
+            # Agent plays
+            if not is_training:
+                action_id, _ = self.agents[player_id].eval_step(state)
+            else:
+                action_id = self.agents[player_id].step(state)
+
+            # Environment steps
+            next_state, next_player_id = self.step(action_id)
+            # Save action
+            trajectories[player_id].append(action_id)
+
+            # Set the state and player
+            state = next_state
+            player_id = next_player_id
+
+            # Save state.
+            if not self.game.is_over():
+                trajectories[player_id].append(state)
+
+        # Add a final state to all the players
+        for player_id in range(self.num_players):
+            state = self.get_state(player_id)
+            trajectories[player_id].append(state)
+
+        # Payoffs
+        payoffs = self.get_payoffs()
+
+        return trajectories, payoffs
+
     def is_over(self):
         return self.game.is_over()
 

@@ -19,7 +19,7 @@ class CrewEnv(Env):
         # BIG
         # self.state_shape = [(40, 15 if self.skip_signals else 19) for _ in range(config['num_players'])]
         # SMALL
-        self.state_shape = [(40, 10) for _ in range(config['num_players'])]
+        self.state_shape = [(40, 12) for _ in range(config['num_players'])]
         self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(config['num_players'])]
 
     def get_payoffs(self):
@@ -95,7 +95,7 @@ class CrewEnv(Env):
         #                 obs[card_id][15 + player.player_id] = 1
 
         # SMALL
-        obs = [[0 for _ in range(10)] for _ in range(40)]
+        obs = [[0 for _ in range(12)] for _ in range(40)]
 
         if not game.is_over():
             for card in game.round.players[current_player_id].hand:
@@ -104,16 +104,21 @@ class CrewEnv(Env):
             for move in trick_moves:
                 card_id = move.card.card_id
                 obs[card_id][1] = 1
-            for task in game.round.tasks:
-                player_id = task.owner
-                card_id = task.card.card_id
-                if player_id == current_player_id:
-                    obs[card_id][2] = 1
+
+            others_task_ids = []
+            others_tasks = []
+            our_tasks = []
             for task in game.round.tasks:
                 player_id = task.owner
                 card_id = task.card.card_id
                 if player_id != current_player_id:
+                    others_task_ids.append(card_id)
+                    others_tasks.append(task.card)
                     obs[card_id][3] = 1
+                else:
+                    obs[card_id][2] = 1
+                    our_tasks.append(task.card)
+
             # META
             for card in deck:  # weak / medium / strong
                 strength = card.rank // 2
@@ -126,6 +131,23 @@ class CrewEnv(Env):
                     if (card.suit == first_card.suit and card.rank > first_card.rank) or \
                             (card.suit == CrewCard.trump_suit and first_card.suit != CrewCard.trump_suit):
                         obs[card.card_id][9] = 1
+            for card in deck:  # can break things
+                if card.card_id in others_task_ids and obs[card.card_id][9] == 1:
+                    obs[card.card_id][10] = 1
+            for card in deck:  # should be thrown away
+                can_harm_other = False
+                can_help_us = False
+                for task in others_tasks:
+                    if task.suit == card.suit and task.rank < card.rank:
+                        can_harm_other = True
+                        break
+                for task in our_tasks:
+                    if task.suit == card.suit and task.rank < card.rank:
+                        can_help_us = True
+                        break
+                if can_harm_other and not can_help_us:
+                    obs[card.card_id][11] = 1
+
             # END
 
         extracted_state['obs'] = np.array(obs, dtype=np.float32)
