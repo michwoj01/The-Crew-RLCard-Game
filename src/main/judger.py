@@ -26,7 +26,7 @@ class Judger:
                 if current_player.can_signal():
                     legal_actions.append(SkipSignalAction())
                     hand = current_player.hand
-                    suits = {card.suit for card in hand}
+                    suits = {card.suit for card in hand if card.suit != CrewCard.trump_suit}
                     for suit in suits:
                         cards_of_suit = [card for card in hand if card.suit == suit]
                         if len(cards_of_suit) == 1:
@@ -53,8 +53,7 @@ class Judger:
                 if trick_moves and len(trick_moves) < 4:
                     led_card: CrewCard = trick_moves[0].card
                     cards_of_led_suit = [card for card in hand
-                                         if card.suit == led_card.suit
-                                         or card.suit == CrewCard.trump_suit]
+                                         if card.suit == led_card.suit]
                     if cards_of_led_suit:
                         legal_cards = cards_of_led_suit
                 for card in legal_cards:

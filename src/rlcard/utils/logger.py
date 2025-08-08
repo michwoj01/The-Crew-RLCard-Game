@@ -6,18 +6,19 @@ class Logger(object):
     """ Logger saves the running results and helps make plots from the results
     """
 
-    def __init__(self, log_dir):
+    def __init__(self, log_dir, game_tag):
         """ Initialize the labels, legend and paths of the plot and log file.
 
         Args:
             log_dir (str): The path the log files
         """
         self.log_dir = log_dir
+        self.game_tag = game_tag
 
     def __enter__(self):
-        self.txt_path = os.path.join(self.log_dir, 'log.txt')
-        self.csv_path = os.path.join(self.log_dir, 'performance.csv')
-        self.fig_path = os.path.join(self.log_dir, 'fig.png')
+        self.txt_path = os.path.join(self.log_dir, self.game_tag + '_log.txt')
+        self.csv_path = os.path.join(self.log_dir, self.game_tag + '_performance.csv')
+        self.fig_path = os.path.join(self.log_dir, self.game_tag + '_fig.png')
 
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)

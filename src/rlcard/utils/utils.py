@@ -147,23 +147,15 @@ def remove_illegal(action_probs, legal_actions):
 
 
 def tournament(env, num):
-    payoffs = [0 for _ in range(env.num_players)]
     counter = 0
     good_games = 0
-    bad_games = 0
     while counter < num:
         _, _payoffs = env.run(is_training=False)
         if _payoffs[0][-1] > 0:
             good_games += 1
-        else:
-            bad_games += 1
-        for i, _ in enumerate(payoffs):
-            payoffs[i] += _payoffs[i][-1]
         counter += 1
-    print(f"Good games: {good_games}, Bad games: {bad_games}")
-    for i, _ in enumerate(payoffs):
-        payoffs[i] /= counter
-    return payoffs
+    print(f"Good games: {good_games}, Bad games: {counter - good_games}")
+    return good_games / counter
 
 def plot_curve(csv_path, save_path, algorithm):
     import os
