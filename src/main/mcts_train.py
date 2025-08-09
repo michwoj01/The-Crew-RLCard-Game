@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_episodes', type=int, default=100)
     parser.add_argument('--num_eval_games', type=int, default=100)
     parser.add_argument('--evaluate_every', type=int, default=10)
-    parser.add_argument("--n_simulations", type=int, default=100)
+    parser.add_argument("--n_simulations", type=int, default=1000)
     parser.add_argument('--save_path', type=str, default='experiments/')
 
     # environment parameters

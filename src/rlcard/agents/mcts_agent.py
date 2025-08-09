@@ -87,14 +87,14 @@ class TreeNode:
         agents = [agent for _ in range(simulation_env.num_players)]
         simulation_env.set_agents(agents)
         simulation_env.algorithm = 'dqn'
+
         trajectories, payoffs = simulation_env.run_without_reset(original_player, is_training=True)
         trajectories = reorganize(trajectories, payoffs)
 
         for ts in trajectories[0]:
             agents[0].feed(ts)
 
-        simulation_env.algorithm = 'mcts'
-        return simulation_env.get_payoffs()[original_player]
+        return sum(simulation_env.get_payoffs()[original_player])
 
 
 class MCTS:
