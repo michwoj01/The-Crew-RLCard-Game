@@ -81,7 +81,7 @@ def train(args):
             )
     agents = [agent for _ in range(env.num_players)]
     env.set_agents(agents)
-    game_tag = f'{args.algorithm}_{args.no_tasks}t_ss{args.skip_signals}_ft{args.fixed_tasks}_{time.time()}'
+    game_tag = f'cardv2_{args.algorithm}_{args.no_tasks}t_ss{args.skip_signals}_ft{args.fixed_tasks}'
     # Start training
     with Logger(args.save_path, game_tag) as logger:
         start_time = time.time()

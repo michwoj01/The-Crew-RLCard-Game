@@ -212,7 +212,7 @@ class Estimator(object):
         self.device = device
 
         # set up Q model and place it in eval mode
-        qnet = EstimatorNetwork0(num_actions, state_shape, mlp_layers)
+        qnet = EstimatorNetwork(num_actions, state_shape, mlp_layers)
         qnet = qnet.to(self.device)
         self.qnet = qnet
         self.qnet.eval()
@@ -312,17 +312,15 @@ class EstimatorNetwork0(nn.Module):
 
 
 class EstimatorNetwork(nn.Module):
-    def __init__(self, num_actions=2, state_shape=(40, 10), mlp_layers=None):
+    def __init__(self, num_actions=2, state_shape=(40, 12), mlp_layers=None):
         out_channels = 4
-
+        self.num_actions = num_actions
         super(EstimatorNetwork, self).__init__()
         self.num_actions = num_actions
         self.num_cards, self.card_feature_dims = state_shape  # State dimensions
-        # Revised MLP layers setup: only a single hidden layer with 64 units
         self.mlp_layers = [64]
-        # Revised Convolutional layers with new structure
         self.conv_layers = nn.Sequential(
-            nn.Conv1d(in_channels=10, out_channels=8, kernel_size=1),
+            nn.Conv1d(in_channels=self.card_feature_dims, out_channels=8, kernel_size=1),
             nn.ReLU(),
             nn.Conv1d(in_channels=8, out_channels=out_channels, kernel_size=1),
             nn.ReLU()
