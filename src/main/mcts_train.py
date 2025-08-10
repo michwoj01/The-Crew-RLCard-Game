@@ -1,10 +1,9 @@
 import argparse
 import os
-import time
 
 from src.rlcard.agents import MCTSAgent
 from src.rlcard.envs import register, make, CrewEnv
-from src.rlcard.utils import set_seed, Logger
+from src.rlcard.utils import set_seed, Logger, tournament_with_eval_hands
 
 
 def run_mcts(args):
@@ -12,7 +11,7 @@ def run_mcts(args):
 
     register(
         env_id='crew',
-        entry_point='env:CrewEnv',
+        entry_point='src.rlcard.envs.env:CrewEnv',
     )
 
     env: CrewEnv = make('crew', config={
@@ -22,14 +21,12 @@ def run_mcts(args):
         'algorithm': args.algorithm
     })
 
-    agents = [MCTSAgent(env, n_simulations=args.n_simulations) for _ in range(env.num_players)]
-    env.set_agents(agents)
-
-    with Logger(args.save_path) as logger:
-        for episode in range(1, args.num_episodes + 1):
-            start_time = time.time()
-            _, payoffs = env.run(is_training=False)
-            print(payoffs, time.time() - start_time)
+    with Logger(args.save_path, 'mcts2') as logger:
+        for sims in range(100, 1001, 100):
+            agents = [MCTSAgent(env, n_simulations=sims) for _ in range(env.num_players)]
+            env.set_agents(agents)
+            performance = tournament_with_eval_hands(env)
+            logger.log_performance(sims, performance)
 
 
 if __name__ == '__main__':
@@ -40,7 +37,6 @@ if __name__ == '__main__':
     parser.add_argument('--num_episodes', type=int, default=10)
     parser.add_argument('--num_eval_games', type=int, default=20)
     parser.add_argument('--evaluate_every', type=int, default=10)
-    parser.add_argument("--n_simulations", type=int, default=1000)
     parser.add_argument('--save_path', type=str, default='experiments/')
 
     # environment parameters

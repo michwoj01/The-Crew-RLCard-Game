@@ -162,6 +162,8 @@ class CrewEnv:
         self.game = Game(
             num_players=self.num_players,
             no_tasks=self.no_tasks,
+            eval_mode=self.eval_mode,
+            eval_hand_id=self.eval_hand_id,
             np_random=self.np_random,
             skip_signals=self.skip_signals)
         self.game.init_game()
@@ -169,8 +171,6 @@ class CrewEnv:
         return {}, current_player_id
 
     def step(self, action_id: int):
-        if not self.is_clone:
-            self.agents[0].log_move(self.get_player_id(), action_id)
         action = self._decode_action(action_id)
         self.timestep += 1
         self.action_recorder.append((self.get_player_id(), action))
