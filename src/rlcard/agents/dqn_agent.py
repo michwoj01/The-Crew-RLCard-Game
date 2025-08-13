@@ -212,7 +212,7 @@ class Estimator(object):
         self.device = device
 
         # set up Q model and place it in eval mode
-        qnet = EstimatorNetwork(num_actions, state_shape, mlp_layers)
+        qnet = EstimatorNetwork2(num_actions, state_shape, mlp_layers)
         qnet = qnet.to(self.device)
         self.qnet = qnet
         self.qnet.eval()

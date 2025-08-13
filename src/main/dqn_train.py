@@ -81,7 +81,7 @@ def train(args):
             )
     agents = [agent for _ in range(env.num_players)]
     env.set_agents(agents)
-    game_tag = f'{args.algorithm}_{args.no_tasks}t_ss{args.skip_signals}_ft{args.fixed_tasks}_{time.time()}'
+    game_tag = f'kuba_{args.algorithm}_{args.no_tasks}t_ss{args.skip_signals}_ft{args.fixed_tasks}'
     # Start training
     with Logger(args.save_path, game_tag) as logger:
         start_time = time.time()
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # training parameters
-    parser.add_argument('--num_episodes', type=int, default=100_000)
+    parser.add_argument('--num_episodes', type=int, default=300_000)
     parser.add_argument('--num_eval_games', type=int, default=200)
     parser.add_argument('--evaluate_every', type=int, default=1000)
     parser.add_argument("--load_checkpoint_path", type=str, default="")
@@ -143,9 +143,9 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument("--algorithm", type=str, default="dqn")
     parser.add_argument("--num_players", type=int, default=4)
-    parser.add_argument("--no_tasks", type=int, default=1)
-    parser.add_argument("--fixed_tasks", type=bool, default=False)
-    parser.add_argument("--skip_signals", type=bool, default=False)
+    parser.add_argument("--no_tasks", type=int, default=2)
+    parser.add_argument("--fixed_tasks", type=bool, default=True)
+    parser.add_argument("--skip_signals", type=bool, default=True)
     parser.add_argument("--n_simulations", type=int, default=100)
 
     args = parser.parse_args()

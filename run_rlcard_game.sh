@@ -1,7 +1,9 @@
 #!/bin/bash
 
+source .venv/bin/activate
+
 # Set the PYTHONPATH to include the src directory
-export PYTHONPATH=$(dirname "$0")/src
+export PYTHONPATH=$(dirname "$0")
 
 # Run uvicorn with the server module
-python src/rlcard/main.py
+python src/main/dqn_train.py

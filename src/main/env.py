@@ -15,7 +15,8 @@ class CrewEnv(Env):
                         self.skip_signals)
         self.judger: Judger = Judger(game=game)
         super().__init__(game=game, config=config)
-        self.state_shape = [(40, 11 if self.skip_signals else 15) for _ in range(config['num_players'])]
+        state_shape_size = self.get_state_shape_size()
+        self.state_shape = [[1, state_shape_size] for _ in range(self.num_players)]
         self.action_shape = [[ActionEvent.get_num_actions(self.skip_signals)] for _ in range(config['num_players'])]
 
     def get_payoffs(self):
@@ -39,44 +40,77 @@ class CrewEnv(Env):
             payoffs = [-1 for _ in range(game.get_num_players())]
         return payoffs
 
+    def get_state_shape_size(self) -> int:
+        state_shape_size = 0
+        state_shape_size += 40  # hand_rep_size
+        state_shape_size += 4 * 14  # trick_rep_size
+        state_shape_size += 4 * 13  # tasks_rep_size
+        state_shape_size += 40  # hidden_cards_rep_size
+        state_shape_size += 4  # current_player_rep_size
+        if not self.skip_signals:
+            state_shape_size += 4 * 17  # signal_rep_size
+        return state_shape_size
+
     def _extract_state(self, state):
         game = self.game
         extracted_state = {}
         legal_actions = self._get_legal_actions()
         current_player_id = game.get_player_id()
 
-        obs = [[0 for _ in range(11 if self.skip_signals else 15)] for _ in range(40)]
-
+        hand_rep = np.zeros(40, dtype=int)
         if not game.is_over():
             for card in game.round.players[current_player_id].hand:
-                obs[card.card_id][0] = 1
+                hand_rep[card.card_id] = 1
+
+        tasks_rep = [np.zeros(13, dtype=int) for _ in range(4)]
+        if not game.is_over():
+            for task in game.round.tasks:
+                tasks_rep[task.owner][task.card.rank_index] = 1
+                tasks_rep[task.owner][9 + task.card.suit_index] = 1
+
+        hidden_cards_rep = np.zeros(40, dtype=int)
+        if not game.is_over():
+            for player in game.round.players:
+                if player.player_id != current_player_id:
+                    for card in player.hand:
+                        hidden_cards_rep[card.card_id] = 1
+                    if player.signal is not None:
+                        hidden_cards_rep[player.signal[0].card_id] = 0
+
+        trick_pile_rep = [np.zeros(14, dtype=int) for _ in range(4)]
+        if not game.is_over():
             trick_moves = game.round.get_trick_moves()
-            if len(trick_moves) > 0:
-                first_card_suit = trick_moves[0].card.suit_index
-                if first_card_suit == 4:
-                    for i in range(4):
-                        obs[36 + i][1] = 1
-                else:
-                    for i in range(9):
-                        obs[first_card_suit * 9 + i][1] = 1
-            for ind, val in enumerate(game.round.card_record):
-                if val > 0:
-                    obs[ind][2] = 1
             for move in trick_moves:
                 player_id = move.player_id
-                card_id = move.card.card_id
-                obs[card_id][3 + player_id] = 1
-            for task in game.round.tasks:
-                player_id = task.owner
-                card_id = task.card.card_id
-                obs[card_id][7 + player_id] = 1
-            if not self.skip_signals:
-                for player in game.round.players:
-                    if player.signal:
-                        card_id = player.signal[0].card_id
-                        obs[card_id][11 + player.player_id] = 1
+                card = move.card
+                trick_pile_rep[player_id][card.rank_index] = 1
+                trick_pile_rep[player_id][9 + card.suit_index] = 1
+                hidden_cards_rep[card.card_id] = 0
 
-        extracted_state['obs'] = np.array(obs, dtype=np.float32)
+        current_player_rep = np.zeros(4, dtype=int)
+        current_player_rep[current_player_id] = 1
+
+        rep = []
+        rep.append(hand_rep)
+        rep += trick_pile_rep
+        rep += tasks_rep
+        rep.append(hidden_cards_rep)
+        rep.append(current_player_rep)
+
+        if not self.skip_signals:
+            signals_rep = [np.zeros(17, dtype=int) for _ in range(4)]
+            if not game.is_over():
+                for player in game.round.players:
+                    if player.signal is not None:
+                        card_rank = player.signal[0].rank_index
+                        card_suit = player.signal[0].suit_index
+                        signal_type = player.signal[1].value
+                        signals_rep[player.player_id][card_rank] = 1
+                        signals_rep[player.player_id][9 + card_suit] = 1
+                        signals_rep[player.player_id][14 + signal_type] = 1
+            rep += signals_rep
+        obs = np.concatenate(rep)
+        extracted_state['obs'] = obs
         extracted_state['legal_actions'] = legal_actions
         return extracted_state
 
