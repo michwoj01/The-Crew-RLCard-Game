@@ -55,7 +55,6 @@ class DMCNet(nn.Module):
         values = self.fc_layers(x).flatten()
         return values
 
-
 class DMCAgent:
     def __init__(
             self,
@@ -67,7 +66,7 @@ class DMCAgent:
     ):
         self.use_raw = False
         self.device = 'cuda:' + device if device != "cpu" else "cpu"
-        self.net = CardwiseDMCNet(state_shape, action_shape, mlp_layers).to(self.device)
+        self.net = DMCNet(state_shape, action_shape, mlp_layers).to(self.device)
         self.exp_epsilon = exp_epsilon
         self.action_shape = action_shape
 
@@ -88,7 +87,8 @@ class DMCAgent:
         action_idx = np.argmax(values)
         action = action_keys[action_idx]
 
-        info = {'values': {state['legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}}
+        info = {}
+        info['values'] = {state['raw_legal_actions'][i]: float(values[i]) for i in range(len(action_keys))}
 
         return action, info
 
@@ -127,7 +127,6 @@ class DMCAgent:
     def set_device(self, device):
         self.device = device
 
-
 class DMCModel:
     def __init__(
             self,
@@ -135,7 +134,7 @@ class DMCModel:
             action_shape,
             mlp_layers=[512, 512, 512, 512, 512],
             exp_epsilon=0.01,
-            device="cpu"
+            device=0
     ):
         self.agents = []
         for player_id in range(len(state_shape)):

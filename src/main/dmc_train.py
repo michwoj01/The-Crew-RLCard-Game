@@ -21,7 +21,6 @@ def train(args):
 
     trainer = DMCTrainer(
         env=env,
-        cuda=args.cuda,
         x_pid=args.x_pid,
         save_dir=args.save_dir,
         total_frames=args.total_frames,
