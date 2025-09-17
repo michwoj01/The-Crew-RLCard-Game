@@ -148,9 +148,6 @@ class GameAnalyzer:
                 row, col = position_map[i]
                 axes[row, col].set_visible(False)
 
-        # Add main title
-        fig.suptitle('Win Percentage by Option and Number of Tasks', fontsize=18, fontweight='bold')
-
         plt.tight_layout()
         plt.subplots_adjust(top=0.90, hspace=0.25, wspace=0.3)
 
@@ -270,10 +267,6 @@ class GameAnalyzer:
                 row, col = position_map[i]
                 axes[row, col].set_visible(False)
 
-        # Add main title with legend
-        fig.suptitle('Win Percentage by Option and Number of Tasks',
-                     fontsize=18, fontweight='bold')
-
         # Create figure-level legend on the right side of the title
         from matplotlib.patches import Rectangle
         legend_elements = [
@@ -382,9 +375,6 @@ class GameAnalyzer:
             fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95),
                        ncol=2, fontsize=28)
 
-        # Add main title
-        fig.suptitle('Average Rounds by Option and Result', fontsize=36, fontweight='bold', y=0.98)
-
         # Hide unused subplots if less than 4 tasks
         for tasks in [1, 2, 3, 4]:
             if tasks not in unique_tasks and tasks in position_map:
@@ -471,9 +461,6 @@ class GameAnalyzer:
         if handles:
             fig.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5, 0.95),
                        ncol=2, fontsize=28)
-
-        # Add main title
-        fig.suptitle('Average Rounds by Number of Tasks and Result', fontsize=36, fontweight='bold', y=0.98)
 
         # Hide unused subplots if less than 4 options
         for i in range(len(ordered_options), 4):
@@ -580,7 +567,6 @@ class GameAnalyzer:
                         fontsize=14, style='italic', color='gray', rotation=0)
 
         # Formatting
-        ax.set_title('Average Won Tasks in Lost Games (3 vs 4 Tasks)', fontsize=20, fontweight='bold')
         ax.set_xlabel('Option', fontsize=18)
         ax.set_ylabel('Average Won Tasks', fontsize=16, labelpad=20)
         ax.set_xticks(x)
@@ -964,9 +950,6 @@ class GameAnalyzer:
         plt.tight_layout()
         plt.subplots_adjust(bottom=bottom_adjust)
 
-        # Add main title
-        fig.suptitle('Loss Reasons by Option and Tasks', fontsize=20, fontweight='bold', y=0.98)
-
         if save_prefix:
             filename = f"{save_prefix}_loss_reasons_option_tasks.pdf"
             plt.savefig(filename, bbox_inches='tight', dpi=300)
@@ -996,22 +979,22 @@ class GameAnalyzer:
         print(data[data['Result'] == 'LOSE']['Reason'].value_counts())
 
         # Generate plots
-        # print("\n1. Creating win percentage plots...")
-        # self.plot_win_percentage_by_option(data, save_prefix)
-        #
-        # print("\n2. Creating average rounds plots (by tasks)...")
-        # self.plot_average_rounds(data, save_prefix)
-        #
-        # print("\n3. Creating average rounds plots (by option)...")
-        # self.plot_average_rounds_by_option(data, save_prefix)
-        #
-        # print("\n4. Creating average won tasks in losses plots...")
-        # self.plot_average_won_tasks_in_losses(data, save_prefix)
-        #
-        # print("\n5. Creating loss reasons pie charts...")
-        # self.plot_loss_reasons_pie_charts(data, save_prefix)
+        print("\n1. Creating win percentage plots...")
+        self.plot_win_percentage_by_option(data, save_prefix)
 
-        # self.plot_loss_reasons_by_option_and_tasks(data, save_prefix)
+        print("\n2. Creating average rounds plots (by tasks)...")
+        self.plot_average_rounds(data, save_prefix)
+
+        print("\n3. Creating average rounds plots (by option)...")
+        self.plot_average_rounds_by_option(data, save_prefix)
+
+        print("\n4. Creating average won tasks in losses plots...")
+        self.plot_average_won_tasks_in_losses(data, save_prefix)
+
+        print("\n5. Creating loss reasons pie charts...")
+        self.plot_loss_reasons_pie_charts(data, save_prefix)
+
+        self.plot_loss_reasons_by_option_and_tasks(data, save_prefix)
 
         self.plot_win_percentage_by_option_with_bots(data, save_prefix)
 
